@@ -11,6 +11,14 @@
       padding: 1rem;
       background: #f9f9f9;
     }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-container h1 {
+      margin: 0;
+    }
     h1, h2, h3, h4 {
       margin-top: 0; /* Consistent heading margins */
     }
@@ -30,6 +38,12 @@
         background-color: #dc3545;
      }
 
+    /* Clear Data Button */
+    #clearDataBtn {
+      background-color: #dc3545;
+      margin-left: 1rem;
+    }
+
     /* --- Layout --- */
     .setup-area {
       display: flex;
@@ -48,6 +62,10 @@
     .setup-column h3 {
       text-align: center;
       border-bottom: 1px solid #ddd;
+    }
+    .header-actions {
+      display: flex;
+      gap: 1rem;
       padding-bottom: 0.5rem;
       margin-bottom: 1rem;
     }
@@ -158,8 +176,9 @@
     }
     .seat-icon {
         display: inline-block;
-        width: 30px;
+        min-width: 50px; /* Increased width for text */
         height: 30px;
+        padding: 0 5px; /* Add padding */
         border: 1px solid #ccc;
         border-radius: 4px;
         margin-right: 5px;
@@ -206,11 +225,25 @@
         padding: 0.1rem 0;
      }
      .inline-input {
-        border: 1px solid #ccc;
-        padding: 0.2rem;
-        font-size: 1em;
-        margin: 0;
-        vertical-align: baseline;
+       border: 1px solid #ccc;
+       padding: 0.2rem;
+       font-size: 1em;
+       margin: 0;
+       vertical-align: baseline;
+     }
+     
+     /* Child allocation status styles */
+     .child-card.fully-allocated {
+       background-color: #e8f5e9;
+       border-left: 4px solid #4caf50;
+     }
+     .child-card.partially-allocated {
+       background-color: #fff3e0;
+       border-left: 4px solid #ff9800;
+     }
+     .child-card.unallocated {
+       background-color: #ffebee;
+       border-left: 4px solid #f44336;
      }
 
      /* Seat styles on allocation board */
@@ -222,8 +255,8 @@
       min-height: 40px; /* Reduced height */
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 0.9em;
+      justify-content: center; /* Keep centered */
+      font-size: 0.85em; /* Slightly smaller font if needed */
       color: #555;
     }
     .seat.seat-occupied {
@@ -243,7 +276,64 @@
   </style>
 </head>
 <body>
-  <h1>Carpool Matcher</h1>
+  <!-- DEBUG MARKER Removed -->
+  <script>console.log("DEBUG: BODY MARKER - Latest file version loaded");</script> <!-- Keeping console log for now -->
+  <div class="header-container">
+    <h1>Carpool Matcher</h1>
+    <div class="header-actions">
+      <button id="clearAllocationsBtn" class="danger" title="Clear all child assignments but keep drivers/children">Clear Allocations</button>
+      <button id="clearDataBtn" class="danger" title="Clear ALL data including drivers and children">Clear All Data</button>
+    </div>
+  </div>
+
+  <script>
+    // Add clear allocations button functionality
+    document.getElementById('clearAllocationsBtn').addEventListener('click', function() {
+      if (confirm('Clear all child assignments while keeping drivers and children?')) {
+        clearAllAllocations();
+        alert('All child assignments have been cleared.');
+      }
+    });
+    // Add clear data functionality
+    document.getElementById('clearDataBtn').addEventListener('click', function() {
+      if (confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
+        // Clear localStorage using correct keys
+        localStorage.removeItem('drivers');
+        localStorage.removeItem('children');
+        
+        // Reset in-memory arrays
+        drivers = [];
+        children = [];
+        
+        // Refresh UI
+        render();
+        
+        console.log('DEBUG: Cleared localStorage drivers:', localStorage.getItem('drivers'));
+        console.log('DEBUG: Cleared localStorage children:', localStorage.getItem('children'));
+        alert('All data has been cleared. Page will now refresh.');
+        location.reload();
+      }
+    });
+
+    // Add clear allocations only functionality
+    function clearAllAllocations() {
+      // Clear all seat assignments but keep drivers and children
+      drivers.forEach(driver => {
+        driver.seats = driver.seats.map(seat => {
+          // Preserve seat type, clear assignments
+          return {...seat, assignedPickup: null, assignedDropoff: null}; 
+        });
+      });
+       children.forEach(child => {
+           child.assignedPickup = null;
+           child.assignedDropoff = null;
+       });
+      
+      // Update storage and UI
+      saveData();
+      render();
+    }
+  </script>
 
   <!-- Templates for Visual Elements -->
   <template id="carTemplate">
@@ -252,7 +342,8 @@
         <h4 class="car-name"><span class="placeholder-text" data-field="name">[Click to Add Driver Name]</span></h4>
         <div class="inline-edit-remove" style="display: none;"> <!-- Hidden initially -->
           <button class="edit-btn" title="Edit">✏️</button>
-          <button class="remove-btn" title="Remove">❌</button>
+          <button class="clear-btn" title="Clear Allocations">🔄</button>
+          <button class="remove-btn" title="Delete" disabled>❌</button>
         </div>
       </div>
       <div class="item-controls">
@@ -266,6 +357,13 @@
       </div>
       <div class="seat-icons">
         <!-- Seat icons will be generated here -->
+      </div>
+      <div class="item-controls"> <!-- Added for Comments -->
+          <label for="driver-comment">Comment:</label>
+          <textarea class="driver-comment" data-field="comments" style="width: 95%; min-height: 40px; margin-top: 0.3rem;" disabled></textarea> <!-- Disabled by default -->
+      </div>
+      <div class="comment-display" style="margin-top: 0.5rem; font-size: 0.9em; color: #555; white-space: pre-wrap;">
+          <!-- Comment text will be displayed here -->
       </div>
       <div class="config-buttons"> <!-- Shown during initial config/edit -->
          <button type="button" class="save-config-btn">Save</button>
@@ -285,8 +383,9 @@
             <div class="item-controls">
                 <label>Seat:
                     <select class="seat-requirement" data-field="seatTypeNeeded">
-                        <option value="">Standard</option>
-                        <option value="rear-facing">Rear-Facing</option>
+                        <option value="none">None</option>
+                        <option value="front-facing">Front-facing</option>
+                        <option value="rear-facing">Rear-facing</option>
                         <option value="booster">Booster</option>
                     </select>
                 </label>
@@ -298,7 +397,8 @@
         </div>
         <div class="inline-edit-remove" style="display: none;"> <!-- Hidden initially -->
           <button class="edit-btn" title="Edit">✏️</button>
-          <button class="remove-btn" title="Remove">❌</button>
+          <button class="clear-btn" title="Clear Allocations">🔄</button>
+          <button class="remove-btn" title="Delete" disabled>❌</button>
         </div>
      </div>
   </template>
@@ -322,18 +422,8 @@
 
   <h2>Allocation Boards</h2>
   <div class="swimlane-container">
-    <div class="board" id="pickupBoard">
-       <h3>Pick-up Assignments</h3>
-       <div class="list" id="pickupUnassignedList">
-         <h4>Unassigned (Pick-up)</h4>
-         <!-- Static header, list no longer a drop target for children from setup -->
-       </div>
-       <div class="drivers-area" id="pickupDriversArea">
-         <!-- Assigned pickup drivers go here -->
-       </div>
-    </div>
     <div class="board" id="dropoffBoard">
-        <h3>Drop-off Assignments</h3>
+        <h3>Drop-off Assignments (8am)</h3>
         <div class="list" id="dropoffUnassignedList">
           <h4>Unassigned (Drop-off)</h4>
            <!-- Static header, list no longer a drop target for children from setup -->
@@ -342,30 +432,25 @@
           <!-- Assigned dropoff drivers go here -->
         </div>
     </div>
+    <div class="board" id="pickupBoard">
+       <h3>Pick-up Assignments (5pm)</h3>
+       <div class="list" id="pickupUnassignedList">
+         <h4>Unassigned (Pick-up)</h4>
+         <!-- Static header, list no longer a drop target for children from setup -->
+       </div>
+       <div class="drivers-area" id="pickupDriversArea">
+         <!-- Assigned pickup drivers go here -->
+       </div>
+    </div>
   </div>
 
   <script>
-    // --- Template & Area References ---
-    const carTemplate = document.getElementById('carTemplate');
-    const childTemplate = document.getElementById('childTemplate');
-    const availableCarsArea = document.getElementById('availableCarsArea');
-    const childrenWaitingArea = document.getElementById('childrenWaitingArea');
-    const addCarBtn = document.getElementById('addCarBtn');
-    const addChildBtn = document.getElementById('addChildBtn');
+    // DEBUG LOG: Script loaded
+    console.log("DEBUG: Script loaded");
 
-    // Allocation Board References
-    const pickupUnassignedList = document.getElementById('pickupUnassignedList');
-    const dropoffUnassignedList = document.getElementById('dropoffUnassignedList');
-    const pickupBoard = document.getElementById('pickupBoard');
-    const dropoffBoard = document.getElementById('dropoffBoard');
-    const pickupDriversArea = document.getElementById('pickupDriversArea');
-    const dropoffDriversArea = document.getElementById('dropoffDriversArea');
-    // --- End References ---
-
-    // --- Data ---
-    // Load data and ensure new properties exist (isConfigured, assignedToBoard)
+    // --- Data --- (Keep outside DOMContentLoaded)
     let children = JSON.parse(localStorage.getItem('children') || '[]').map(c => ({ ...c, id: c.id || `child_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, assignedPickup: c.assignedPickup || null, assignedDropoff: c.assignedDropoff || null, isConfigured: c.isConfigured === false ? false : true }));
-    let drivers = JSON.parse(localStorage.getItem('drivers') || '[]').map(d => ({ ...d, name: d.name || 'Unnamed Driver', seats: (d.seats || []).map(s => ({ ...s, assignedPickup: s.assignedPickup || null, assignedDropoff: s.assignedDropoff || null })), isConfigured: d.isConfigured === false ? false : true, assignedToBoard: d.assignedToBoard || null }));
+    let drivers = JSON.parse(localStorage.getItem('drivers') || '[]').map(d => ({ ...d, name: d.name || 'Unnamed Driver', seats: (d.seats || []).map(s => ({ ...s, assignedPickup: s.assignedPickup || null, assignedDropoff: s.assignedDropoff || null })), isConfigured: d.isConfigured === false ? false : true, assignedToBoard: d.assignedToBoard || null, comments: d.comments || '' })); // Added comments field
 
     function saveData() {
       localStorage.setItem('children', JSON.stringify(children));
@@ -373,41 +458,97 @@
     }
     // --- End Data ---
 
+    document.addEventListener("DOMContentLoaded", function() {
+      console.log("DEBUG: DOM fully loaded");
 
-    // --- Add Button / Inline Config Logic (Stage 2a) ---
-    addCarBtn.addEventListener('click', () => {
-        const tempCar = carTemplate.content.cloneNode(true).firstElementChild;
-        tempCar.classList.add('is-configuring');
-        tempCar.dataset.tempId = `temp-car-${Date.now()}`; // Temporary ID
+      // --- Template & Area References (Moved inside DOMContentLoaded) ---
+      const carTemplate = document.getElementById('carTemplate');
+      const childTemplate = document.getElementById('childTemplate');
+      const availableCarsArea = document.getElementById('availableCarsArea');
+      const childrenWaitingArea = document.getElementById('childrenWaitingArea');
 
-        // Show config buttons, hide edit/remove (already hidden in template)
-        tempCar.querySelector('.config-buttons').style.display = 'block';
+      // Debug: Check if parent areas are found
+      console.log("DEBUG: availableCarsArea found?", !!availableCarsArea);
+      console.log("DEBUG: childrenWaitingArea found?", !!childrenWaitingArea);
 
-        // Enable controls for configuration
-        tempCar.querySelectorAll('input, button.add-seat-btn, button.remove-seat-btn').forEach(el => el.disabled = false);
+      // Try finding buttons using querySelector relative to parents (or getElementById)
+      // Reverting back to getElementById as querySelector didn't help and the issue seems to be render() timing
+      const addCarBtn = document.getElementById('addCarBtn');
+      const addChildBtn = document.getElementById('addChildBtn');
 
-        // Add listeners specific to this temporary element
-        addTemporaryConfigListeners(tempCar, 'car');
+      // Allocation Board References (Moved inside DOMContentLoaded)
+      const pickupUnassignedList = document.getElementById('pickupUnassignedList');
+      const dropoffUnassignedList = document.getElementById('dropoffUnassignedList');
+      const pickupBoard = document.getElementById('pickupBoard');
+      const dropoffBoard = document.getElementById('dropoffBoard');
+      const pickupDriversArea = document.getElementById('pickupDriversArea');
+      const dropoffDriversArea = document.getElementById('dropoffDriversArea');
+      // --- End References ---
 
-        // Insert after the button
-        addCarBtn.insertAdjacentElement('afterend', tempCar);
-        // Focus the name placeholder/input
-        tempCar.querySelector('.car-name .placeholder-text')?.click();
-    });
+      // Debug check using querySelector method
+      // Debug check using getElementById again
+      console.log("DEBUG: addCarBtn found?", !!addCarBtn);
+      console.log("DEBUG: addChildBtn found?", !!addChildBtn);
 
-    addChildBtn.addEventListener('click', () => {
-        const tempChild = childTemplate.content.cloneNode(true).firstElementChild;
-        tempChild.classList.add('is-configuring');
-        tempChild.dataset.tempId = `temp-child-${Date.now()}`;
+      // --- Add Button / Inline Config Logic (Listeners MUST be attached before render clears elements) ---
+      if (addCarBtn) {
+        addCarBtn.addEventListener('click', () => {
+            const tempCar = carTemplate.content.cloneNode(true).firstElementChild;
+            tempCar.classList.add('is-configuring');
+            tempCar.dataset.tempId = `temp-car-${Date.now()}`; // Temporary ID
 
-        tempChild.querySelector('.config-buttons').style.display = 'block';
-        tempChild.querySelectorAll('input, select').forEach(el => el.disabled = false);
+            // Show config buttons, hide edit/remove (already hidden in template)
+            tempCar.querySelector('.config-buttons').style.display = 'block';
 
-        addTemporaryConfigListeners(tempChild, 'child');
+            // Enable controls for configuration
+            tempCar.querySelectorAll('input, button.add-seat-btn, button.remove-seat-btn').forEach(el => el.disabled = false);
 
-        addChildBtn.insertAdjacentElement('afterend', tempChild);
-        tempChild.querySelector('.child-name .placeholder-text')?.click();
-    });
+            // Add listeners specific to this temporary element
+            addTemporaryConfigListeners(tempCar, 'car');
+
+            // Insert after the button
+            addCarBtn.insertAdjacentElement('afterend', tempCar);
+            // Focus the name placeholder/input
+            tempCar.querySelector('.car-name .placeholder-text')?.click();
+        });
+      } else {
+        console.error("DEBUG: addCarBtn not found, cannot attach listener.");
+      }
+
+      // Removed duplicated else block here
+
+      if (addChildBtn) {
+        addChildBtn.addEventListener('click', () => {
+            const tempChild = childTemplate.content.cloneNode(true).firstElementChild;
+            tempChild.classList.add('is-configuring');
+            tempChild.dataset.tempId = `temp-child-${Date.now()}`;
+
+            tempChild.querySelector('.config-buttons').style.display = 'block';
+            tempChild.querySelectorAll('input, select').forEach(el => el.disabled = false);
+
+            addTemporaryConfigListeners(tempChild, 'child');
+
+            addChildBtn.insertAdjacentElement('afterend', tempChild);
+            tempChild.querySelector('.child-name .placeholder-text')?.click();
+        });
+      } else {
+        console.error("DEBUG: addChildBtn not found, cannot attach listener.");
+      }
+
+      // Initial render call - MOVED TO END of DOMContentLoaded to ensure listeners are attached first
+      // render();
+
+      // Initial render call should also be inside DOMContentLoaded
+      render(); // Call render after setting up listeners and references
+
+      // Initial render call - Moved here
+      render(); // Call render AFTER setting up listeners and references
+
+    }); // End of DOMContentLoaded
+
+    // --- Function Definitions (Keep outside DOMContentLoaded) ---
+    // ... (addTemporaryConfigListeners, enableInlineEdit, saveInlineEdit, etc.) ...
+    // ... (Make sure these functions correctly use the references passed to them or defined globally/within scope) ...
 
     // Updated function to add listeners, handles edit mode flag
     function addTemporaryConfigListeners(element, type, isEditing = false) {
@@ -452,6 +593,10 @@
                  }
             };
             if (!isEditing) renderSeatIcons(element); // Render initial seats only if adding new
+
+            // Enable comment textarea during config/edit
+            const commentTextarea = element.querySelector('.driver-comment');
+            if (commentTextarea) commentTextarea.disabled = false;
         }
         // --- Child Specific Listeners ---
         else if (type === 'child') {
@@ -554,10 +699,12 @@
 
         const currentType = carElement._tempSeats[seatIndex].type;
         let nextType = null;
-        // Cycle: null (Standard) -> booster -> rear-facing -> null
-        if (currentType === null) nextType = 'booster';
-        else if (currentType === 'booster') nextType = 'rear-facing';
-        else if (currentType === 'rear-facing') nextType = null;
+        // Corrected Cycle: null (Standard) -> front-facing -> rear-facing -> booster -> null
+        if (currentType === null) nextType = 'front-facing';
+        else if (currentType === 'front-facing') nextType = 'rear-facing';
+        else if (currentType === 'rear-facing') nextType = 'booster';
+        else if (currentType === 'booster') nextType = null; // Back to standard
+        else nextType = 'front-facing'; // Default case if something unexpected happens
 
         carElement._tempSeats[seatIndex].type = nextType;
         renderSeatIcons(carElement); // Re-render to update the clicked icon
@@ -575,14 +722,26 @@
             const icon = document.createElement('div');
             icon.className = 'seat-icon';
             icon.dataset.index = index; // Store index if needed
-            if (seat.type) {
+            let typeText = 'None';
+            let typeTitle = 'None';
+
+            if (seat.type === 'front-facing') {
+                typeText = 'Front';
+                typeTitle = 'Front-facing';
                 icon.classList.add(seat.type);
-                icon.title = seat.type;
-                icon.textContent = seat.type.substring(0, 1).toUpperCase();
-            } else {
-                 icon.title = 'Standard';
-                 icon.textContent = 'S';
+            } else if (seat.type === 'rear-facing') {
+                typeText = 'Rear';
+                typeTitle = 'Rear-facing';
+                icon.classList.add(seat.type);
+            } else if (seat.type === 'booster') {
+                typeText = 'Booster';
+                typeTitle = 'Booster';
+                icon.classList.add(seat.type);
             }
+            // Default is None (null type)
+
+            icon.title = typeTitle;
+            icon.textContent = typeText; // Use full text
             seatIconsContainer.appendChild(icon);
         });
     }
@@ -591,13 +750,35 @@
     // Save/Update Config Logic (Handles both New and Edit)
     function saveTemporaryConfig(element, type) {
         const isEditing = element.dataset.originalName || element.dataset.originalId;
-        const name = element.dataset.name; // Name set by inline edit
+
+        // --- Robust Name Retrieval ---
+        let name = '';
+        const nameContainer = element.querySelector(type === 'car' ? '.car-name' : '.child-name'); // Target the h4 container
+        const inlineInput = nameContainer?.querySelector('.inline-input'); // Check for active input
+
+        if (inlineInput) {
+            name = inlineInput.value.trim();
+            // Also update dataset immediately if saving from input state
+            element.dataset.name = name;
+        } else {
+            // Fallback to dataset or span if no input is active
+            name = element.dataset.name || nameContainer?.querySelector('span')?.textContent.trim();
+             // Handle case where span might still be placeholder
+             if (name && name.startsWith('[Click')) {
+                 name = ''; // Treat placeholder as empty name
+             }
+        }
+        // --- End Robust Name Retrieval ---
 
         // --- Final Validation ---
         if (!name) {
             alert("Name is required.");
-            const nameElement = element.querySelector(type === 'car' ? '.car-name span' : '.child-name span');
-            if(nameElement) enableInlineEdit(nameElement);
+            // Try to re-focus the input if it exists, otherwise re-enable edit on span
+            if (inlineInput) {
+                inlineInput.focus();
+            } else if (nameContainer?.querySelector('span')) {
+                 enableInlineEdit(nameContainer.querySelector('span'));
+            }
             return;
         }
 
@@ -607,6 +788,7 @@
             const canPickUp = element.querySelector('.can-pickup').checked;
             const canDropOff = element.querySelector('.can-dropoff').checked;
             const seatsData = element._tempSeats || [];
+            const comments = element.querySelector('.driver-comment')?.value || ''; // Read comment
 
              if (seatsData.length === 0) {
                  alert("Please add at least one seat."); return;
@@ -615,8 +797,8 @@
             // Check for name conflict only if name changed or adding new
              if (name !== originalName && drivers.some(d => d.name === name)) {
                  alert(`Driver with name "${name}" already exists. Please use a unique name.`);
-                 const nameElement = element.querySelector('.car-name span');
-                 if(nameElement) enableInlineEdit(nameElement);
+                 // Re-enable inline edit on the name element if validation fails
+                 if(nameContainer?.querySelector('span')) enableInlineEdit(nameContainer.querySelector('span'));
                  return;
              }
 
@@ -626,7 +808,8 @@
                 canDropOff: canDropOff,
                 seats: seatsData.map(seat => ({ type: seat.type, assignedPickup: null, assignedDropoff: null })), // Reset assignments on edit? Or preserve? Resetting for now.
                 isConfigured: true,
-                assignedToBoard: null // Reset board assignment on edit? Or preserve? Resetting for now.
+                assignedToBoard: null, // Reset board assignment on edit? Or preserve? Resetting for now.
+                comments: comments // Save comment
             };
 
             if (isEditing) { // Update existing driver
@@ -655,17 +838,21 @@
             }
 
         } else { // type === 'child'
-            const originalId = element.dataset.originalId;
+            const originalId = element.dataset.originalId; // Get original ID for finding existing child
             const pickUp = element.querySelector('.needs-pickup').checked;
             const dropOff = element.querySelector('.needs-dropoff').checked;
-            const seatTypeNeeded = element.querySelector('.seat-requirement').value || null;
+            let seatTypeNeeded = element.querySelector('.seat-requirement').value;
+            // Map "none" from dropdown to null in data model
+            if (seatTypeNeeded === 'none') {
+                seatTypeNeeded = null;
+            }
 
              if (!pickUp && !dropOff) {
                  alert("Child must need at least Pick Up or Drop Off."); return;
              }
 
              const childData = {
-                name: name,
+                name: name, // Use the name retrieved robustly above
                 pickUp: pickUp,
                 dropOff: dropOff,
                 seatTypeNeeded: seatTypeNeeded,
@@ -675,11 +862,14 @@
                 assignedDropoff: null
              };
 
-            if (isEditing) { // Update existing child
+            if (isEditing && originalId) { // Update existing child - Ensure originalId exists
                  const childIndex = children.findIndex(c => c.id === originalId);
                  if (childIndex !== -1) {
+                     // Ensure ID is preserved during update
+                     const existingChild = children[childIndex];
+                     const updatedChildData = { ...existingChild, ...childData }; // Merge updates, keeping original ID etc.
                      removeAssignmentsForChild(originalId); // Clear old assignments before update
-                     children[childIndex] = { ...children[childIndex], ...childData }; // Merge updates
+                     children[childIndex] = updatedChildData;
                      console.log("Child Updated:", children[childIndex]);
                  } else {
                      console.error("Could not find child to update:", originalId);
@@ -707,13 +897,35 @@
         // Store original identifier in case name is changed
         if (type === 'car') {
             element.dataset.originalName = element.dataset.name;
+            // Store original capabilities
+            const driver = drivers.find(d => d.name === element.dataset.originalName);
+            element._originalPickup = driver?.canPickUp || false;
+            element._originalDropoff = driver?.canDropOff || false;
+            
             // Enable controls
             element.querySelectorAll('input, button.add-seat-btn, button.remove-seat-btn').forEach(el => el.disabled = false);
             // Re-enable seat icon clicks if needed (handled by checking is-configuring?)
-            element._tempSeats = drivers.find(d => d.name === element.dataset.originalName)?.seats.map(s => ({...s})) || []; // Load current seats into temp store
+            element._tempSeats = driver?.seats.map(s => ({...s})) || []; // Load current seats into temp store
             renderSeatIcons(element); // Render seats for editing
+
+            // Populate comment textarea
+            const commentTextarea = element.querySelector('.driver-comment');
+            if (commentTextarea) {
+                commentTextarea.value = driver?.comments || '';
+                commentTextarea.disabled = false; // Ensure it's enabled for editing
+            }
         } else { // child
-             element.dataset.originalId = element.dataset.id;
+             const child = children.find(c => c.id === element.dataset.id);
+             // Store original ID before enabling edit
+             element.dataset.originalId = element.dataset.id; 
+             // Store current name in dataset in case inline edit isn't triggered/saved
+             element.dataset.name = child?.name || ''; 
+
+             if (!child.name) {
+                 // Set default name if empty - This might be redundant if placeholder handles it
+                 // child.name = 'New Child'; 
+                 // element.querySelector('.child-name span').textContent = 'New Child';
+             }
              // Enable controls
              element.querySelectorAll('input, select').forEach(el => el.disabled = false);
         }
@@ -722,51 +934,170 @@
         element.querySelector('.config-buttons').style.display = 'block';
         element.querySelector('.inline-edit-remove').style.display = 'none';
         element.querySelector('.save-config-btn').textContent = 'Update Config'; // Change button text
+        
+        // If editing a car, check if capabilities changed and clear affected assignments
+        if (type === 'car') {
+            const pickupChanged = element._originalPickup !== element.querySelector('.can-pickup').checked;
+            const dropoffChanged = element._originalDropoff !== element.querySelector('.can-dropoff').checked;
+            
+            if (pickupChanged || dropoffChanged) {
+                const driverName = element.dataset.originalName;
+                removeAssignmentsForDriver(driverName);
+            }
+        }
 
         // Re-attach listeners for config buttons and inline edit
         addTemporaryConfigListeners(element, type, true); // Pass flag indicating edit mode
 
-        // Focus name field
-        const nameElement = element.querySelector(type === 'car' ? '.car-name span' : '.child-name span');
-        if(nameElement) enableInlineEdit(nameElement);
+        // Focus name field - Refined logic
+        const nameContainer = element.querySelector(type === 'car' ? '.car-name' : '.child-name');
+        const nameElement = nameContainer?.querySelector('span'); // Target the span specifically
+        if(nameElement) {
+             // Only trigger inline edit if it's not the placeholder text
+             if (!nameElement.classList.contains('placeholder-text')) {
+                 enableInlineEdit(nameElement);
+             } else {
+                 // If it is the placeholder, click it to initiate edit
+                 nameElement.click();
+             }
+        }
     }
 
     // Remove function - now calls the actual removal logic
     function removeItem(element, type) {
         if (type === 'car') {
             const driverName = element.dataset.name;
-            removeDriver(driverName); // Call the existing remove function
+            if (confirm(`Delete this driver "${driverName}" and all their assignments?`)) { // Added name to confirm
+                removeAssignmentsForDriver(driverName);
+                // Actual removal from data array
+                drivers = drivers.filter(d => d.name !== driverName);
+                saveData();
+                render();
+            }
         } else { // child
             const childId = element.dataset.id;
-            removeChild(childId); // Call the existing remove function
+            const child = children.find(c => c.id === childId);
+            if (!child) return; // Child not found
+
+            if (!child.assignedPickup && !child.assignedDropoff) {
+                if (confirm(`Delete this child "${child.name}"?`)) { // Added name to confirm
+                    // Actual removal from data array
+                    children = children.filter(c => c.id !== childId);
+                    saveData();
+                    render();
+                }
+            } else {
+                alert(`Cannot delete child "${child.name}" with active assignments. Clear allocations first.`);
+            }
         }
     }
-    // Assignment clearing helpers remain useful
-    function removeAssignmentsForChild(childId) {
-        drivers.forEach(driver => {
-            driver.seats.forEach(seat => {
-                if (seat.assignedPickup && seat.assignedPickup.id === childId) seat.assignedPickup = null;
-                if (seat.assignedDropoff && seat.assignedDropoff.id === childId) seat.assignedDropoff = null;
+
+    function clearItemAssignments(element, type) {
+        if (type === 'car') {
+            const driverName = element.dataset.name;
+            removeAssignmentsForDriver(driverName);
+            // Also clear assignments from the driver's seats in the data model
+            const driver = drivers.find(d => d.name === driverName);
+            if (driver) {
+                driver.seats.forEach(seat => {
+                    seat.assignedPickup = null;
+                    seat.assignedDropoff = null;
+                });
+                saveData();
+                render(); // Re-render the specific driver on the board
+            }
+        } else { // child
+            const childId = element.dataset.id;
+            const affectedSeats = removeAssignmentsForChild(childId); // This already saves data
+            updateChildCardVisuals(childId); // Update the child card itself
+            // Update the visuals for each seat that was cleared
+            affectedSeats.forEach(info => {
+                updateSeatVisuals(info.driverName, info.seatIndex, info.serviceType);
             });
-        });
+            // No full render needed now
+        }
+        // render(); // Removed full render, using granular updates
     }
+    // Assignment clearing helper - Modified to return affected seats
+    // NOTE: This function now calls saveData() internally after clearing.
+    function removeAssignmentsForChild(childId) {
+        const child = children.find(c => c.id === childId);
+        if (!child) return []; // Child not found
+
+        const assignmentPropPickup = 'assignedPickup';
+        const assignmentPropDropoff = 'assignedDropoff';
+        const seatAssignmentPropPickup = 'assignedPickup';
+        const seatAssignmentPropDropoff = 'assignedDropoff';
+
+        const oldAssignmentPickup = child[assignmentPropPickup];
+        const oldAssignmentDropoff = child[assignmentPropDropoff];
+        let affectedSeatsInfo = [];
+
+        // Clear child's assignment pointers
+        child[assignmentPropPickup] = null;
+        child[assignmentPropDropoff] = null;
+
+        // --- Clear Pickup Seat ---
+        if (oldAssignmentPickup) {
+            const driver = drivers.find(d => d.name === oldAssignmentPickup.driverName);
+            if (driver && driver.seats && oldAssignmentPickup.seatIndex < driver.seats.length) {
+                const seat = driver.seats[oldAssignmentPickup.seatIndex];
+                if (seat[seatAssignmentPropPickup] && seat[seatAssignmentPropPickup].id === childId) {
+                    seat[seatAssignmentPropPickup] = null;
+                    affectedSeatsInfo.push({ driverName: driver.name, seatIndex: oldAssignmentPickup.seatIndex, serviceType: 'pickup' });
+                }
+            }
+        }
+        // --- Clear Dropoff Seat ---
+         if (oldAssignmentDropoff) {
+            const driver = drivers.find(d => d.name === oldAssignmentDropoff.driverName);
+            if (driver && driver.seats && oldAssignmentDropoff.seatIndex < driver.seats.length) {
+                const seat = driver.seats[oldAssignmentDropoff.seatIndex];
+                if (seat[seatAssignmentPropDropoff] && seat[seatAssignmentPropDropoff].id === childId) {
+                    seat[seatAssignmentPropDropoff] = null;
+                    affectedSeatsInfo.push({ driverName: driver.name, seatIndex: oldAssignmentDropoff.seatIndex, serviceType: 'dropoff' });
+                }
+            }
+        }
+
+        saveData(); // Persist changes after clearing everything
+        return affectedSeatsInfo; // Return info about the seats that were cleared
+    }
+
     function removeAssignmentsForDriver(driverName) {
        children.forEach(child => {
             if (child.assignedPickup && child.assignedPickup.driverName === driverName) child.assignedPickup = null;
             if (child.assignedDropoff && child.assignedDropoff.driverName === driverName) child.assignedDropoff = null;
         });
+       // No need to save/render here, called by functions that do.
     }
     // --- End Edit/Remove Logic ---
 
 
     // --- Board Rendering & Drag/Drop Logic (Refactored for Visual UI - Stage 1) ---
     function render() {
-        // Clear dynamic areas, keeping the "+ Add" buttons
-        while (availableCarsArea.children.length > 1) availableCarsArea.removeChild(availableCarsArea.lastChild);
-        while (childrenWaitingArea.children.length > 1) childrenWaitingArea.removeChild(childrenWaitingArea.lastChild);
+        // --- Safer Clearing Logic ---
+        // Preserve static elements (heading + button) before clearing dynamic content
+
+        // For Available Cars Area
+        const carsHeading = availableCarsArea.querySelector('h3');
+        const carsAddButton = availableCarsArea.querySelector('#addCarBtn'); // Use ID selector here
+        availableCarsArea.innerHTML = ''; // Clear everything
+        if (carsHeading) availableCarsArea.appendChild(carsHeading); // Re-add heading
+        if (carsAddButton) availableCarsArea.appendChild(carsAddButton); // Re-add button
+
+        // For Children Waiting Area
+        const childrenHeading = childrenWaitingArea.querySelector('h3');
+        const childrenAddButton = childrenWaitingArea.querySelector('#addChildBtn'); // Use ID selector here
+        childrenWaitingArea.innerHTML = ''; // Clear everything
+        if (childrenHeading) childrenWaitingArea.appendChild(childrenHeading); // Re-add heading
+        if (childrenAddButton) childrenWaitingArea.appendChild(childrenAddButton); // Re-add button
+
+        // Clear allocation board driver areas
         pickupDriversArea.innerHTML = '';
         dropoffDriversArea.innerHTML = '';
-        // Keep static headers for unassigned lists
+
+        // Keep static headers for unassigned lists (This part seems fine)
         pickupUnassignedList.innerHTML = '<h4>Unassigned (Pick-up)</h4>';
         dropoffUnassignedList.innerHTML = '<h4>Unassigned (Drop-off)</h4>';
 
@@ -779,37 +1110,64 @@
             }
         });
 
-        // Render Drivers (either in Available or on Boards)
+        // Render all configured drivers in Available Cars area
         drivers.forEach(driver => {
-            if (driver.isConfigured) { // Only render configured drivers
-                if (driver.assignedToBoard === 'pickup') {
-                    pickupDriversArea.appendChild(createDriverBoardElement(driver, 'pickup'));
-                } else if (driver.assignedToBoard === 'dropoff') {
-                    dropoffDriversArea.appendChild(createDriverBoardElement(driver, 'dropoff'));
-                } else {
-                    // Render in Available Cars area
-                    const carElement = createCarElement(driver);
-                    availableCarsArea.appendChild(carElement);
-                }
+            if (driver.isConfigured) {
+                const carElement = createCarElement(driver);
+                availableCarsArea.appendChild(carElement);
             }
         });
 
-        // Attach drop listeners needed for Stage 1 (boards receiving cars, setup receiving cars back)
+        // Render drivers on pickup/dropoff boards if they have those capabilities
+        drivers.forEach(driver => {
+            if (driver.isConfigured) {
+                if (driver.canPickUp) {
+                    pickupDriversArea.appendChild(createDriverBoardElement(driver, 'pickup'));
+                }
+                if (driver.canDropOff) {
+                    dropoffDriversArea.appendChild(createDriverBoardElement(driver, 'dropoff'));
+                }
+            }
+            // Implicitly, unconfigured drivers are not rendered anywhere yet.
+        });
+
+        // Attach drop listeners (This might need review later if car drag/drop logic changes)
         attachBoardDropListeners();
     }
 
     // Creates the visual element for a *configured* child in the waiting area
     function createChildCardElement(child) {
         const card = childTemplate.content.cloneNode(true).firstElementChild;
-        card.dataset.id = child.id;
+        card.classList.add('child-card');
 
-        const nameSpan = card.querySelector('.child-name');
-        nameSpan.textContent = child.name || '[Unnamed Child]';
-        nameSpan.classList.remove('placeholder-text'); // Remove placeholder class
+        // Determine allocation status
+        const pickupAllocated = child.assignedPickup !== null;
+        const dropoffAllocated = child.assignedDropoff !== null;
+        
+        if ((!child.pickUp || pickupAllocated) && (!child.dropOff || dropoffAllocated)) {
+            card.classList.add('fully-allocated');
+        } else if (pickupAllocated || dropoffAllocated) {
+            card.classList.add('partially-allocated');
+        } else {
+            card.classList.add('unallocated');
+        }
+        card.dataset.id = child.id;
+        card.dataset.name = child.name || ''; // Ensure dataset name is populated
+
+        const nameSpan = card.querySelector('.child-name span'); // Target the span within h4
+        if (child.name) {
+            nameSpan.textContent = child.name;
+            nameSpan.classList.remove('placeholder-text');
+        } else {
+            nameSpan.textContent = '[Click to Add Child Name]';
+            nameSpan.classList.add('placeholder-text');
+        }
+        nameSpan.dataset.field = 'name'; // Ensure field is set
 
         card.querySelector('.needs-pickup').checked = child.pickUp;
         card.querySelector('.needs-dropoff').checked = child.dropOff;
-        card.querySelector('.seat-requirement').value = child.seatTypeNeeded || "";
+        // Map null from data model back to "none" for the dropdown
+        card.querySelector('.seat-requirement').value = child.seatTypeNeeded === null ? 'none' : child.seatTypeNeeded || 'none';
 
         // Hide config buttons, show edit/remove buttons
         card.querySelector('.config-buttons').style.display = 'none';
@@ -822,9 +1180,13 @@
         card.draggable = true;
         card.addEventListener('dragstart', handleChildDragStart);
 
-        // Attach Edit/Remove listeners
+        // Attach Edit/Clear/Remove listeners
         card.querySelector('.edit-btn').onclick = (e) => editItemConfig(e.currentTarget.closest('.child-card'), 'child');
+        card.querySelector('.clear-btn').onclick = (e) => clearItemAssignments(e.currentTarget.closest('.child-card'), 'child');
         card.querySelector('.remove-btn').onclick = (e) => removeItem(e.currentTarget.closest('.child-card'), 'child');
+        
+        // Update delete button state
+        card.querySelector('.remove-btn').disabled = !!(child.assignedPickup || child.assignedDropoff);
 
         return card;
     }
@@ -834,9 +1196,16 @@
         const car = carTemplate.content.cloneNode(true).firstElementChild;
         car.dataset.name = driver.name; // Use name as identifier for now
 
-        const nameSpan = car.querySelector('.car-name');
-        nameSpan.textContent = driver.name || '[Unnamed Driver]';
-        nameSpan.classList.remove('placeholder-text');
+        const nameSpan = car.querySelector('.car-name span'); // Target span within h4
+        if (driver.name) {
+            nameSpan.textContent = driver.name;
+            nameSpan.classList.remove('placeholder-text');
+        } else {
+             nameSpan.textContent = '[Click to Add Driver Name]';
+             nameSpan.classList.add('placeholder-text');
+        }
+         nameSpan.dataset.field = 'name'; // Ensure field is set
+
 
         car.querySelector('.can-pickup').checked = driver.canPickUp;
         car.querySelector('.can-dropoff').checked = driver.canDropOff;
@@ -847,7 +1216,13 @@
         car.querySelector('.inline-edit-remove').style.display = 'inline-block';
 
         // Disable controls (enable on edit in Stage 4)
-        car.querySelectorAll('input, button.add-seat-btn, button.remove-seat-btn').forEach(el => el.disabled = true);
+        car.querySelectorAll('input, button.add-seat-btn, button.remove-seat-btn, textarea.driver-comment').forEach(el => el.disabled = true);
+
+        // Display comment
+        const commentDisplay = car.querySelector('.comment-display');
+        if (commentDisplay) {
+            commentDisplay.textContent = driver.comments || ''; // Display saved comment
+        }
 
         // Generate seat icons
         const seatIconsContainer = car.querySelector('.seat-icons');
@@ -858,10 +1233,14 @@
             if (seat.type) {
                 icon.classList.add(seat.type); // Add class for color
                 icon.title = seat.type;
-                icon.textContent = seat.type.substring(0, 1).toUpperCase();
+                // Display more descriptive text
+                if (seat.type === 'front-facing') icon.textContent = 'Front';
+                else if (seat.type === 'rear-facing') icon.textContent = 'Rear';
+                else if (seat.type === 'booster') icon.textContent = 'Booster';
+                else icon.textContent = 'None'; // Fallback
             } else {
-                 icon.title = 'Standard';
-                 icon.textContent = 'S';
+                 icon.title = 'None';
+                 icon.textContent = 'None';
             }
             seatIconsContainer.appendChild(icon);
         });
@@ -870,9 +1249,10 @@
          car.draggable = true;
          car.addEventListener('dragstart', handleCarDragStart); // Handler for dragging car *from* setup
 
-         // Attach Edit/Remove listeners
+         // Attach Edit/Clear/Remove listeners
          car.querySelector('.edit-btn').onclick = (e) => editItemConfig(e.currentTarget.closest('.car-container'), 'car');
-         car.querySelector('.remove-btn').onclick = (e) => removeItem(e.currentTarget.closest('.car-container'), 'driver');
+         car.querySelector('.clear-btn').onclick = (e) => clearItemAssignments(e.currentTarget.closest('.car-container'), 'car');
+         car.querySelector('.remove-btn').onclick = (e) => removeItem(e.currentTarget.closest('.car-container'), 'car'); // Changed type to 'car'
 
         return car;
      }
@@ -904,8 +1284,19 @@
 
           if (assignedChild) {
             seatDiv.textContent = assignedChild.name;
+            // Add draggable attribute and listener only if occupied
+            seatDiv.draggable = true;
+            seatDiv.addEventListener('dragstart', handleSeatChildDragStart);
           } else {
-            seatDiv.innerHTML = `Seat ${idx + 1} (${seat.type || 'Std'})`;
+            // Display more descriptive text for available seats
+            let seatTypeText = 'None';
+            if (seat.type === 'front-facing') seatTypeText = 'Front';
+            else if (seat.type === 'rear-facing') seatTypeText = 'Rear';
+            else if (seat.type === 'booster') seatTypeText = 'Booster';
+            seatDiv.innerHTML = `Seat ${idx + 1} (${seatTypeText})`;
+            // Make non-occupied seats non-draggable
+            seatDiv.draggable = false;
+            seatDiv.removeEventListener('dragstart', handleSeatChildDragStart); // Ensure listener removed
           }
 
           seatDiv.addEventListener('dragover', (e) => e.preventDefault());
@@ -920,10 +1311,12 @@
         return container;
     }
 
-    // --- Drag Handlers (Adapting/Adding for Stage 1/3) ---
+    // --- Drag Handlers ---
     function handleChildDragStart(e) { // For children from waiting area
-      e.dataTransfer.setData('text/plain', e.target.closest('.child-card').dataset.id); // Child ID
-      e.dataTransfer.setData('application/carpool-item-type', 'child');
+      const childCard = e.target.closest('.child-card');
+      if (!childCard) return;
+      e.dataTransfer.setData('text/plain', childCard.dataset.id); // Child ID
+      e.dataTransfer.setData('application/carpool-item-type', 'child-from-waiting');
     }
 
     function handleCarDragStart(e) { // For cars from setup area
@@ -932,9 +1325,33 @@
     }
 
      function handleBoardCarDragStart(e) { // For cars from board area
-        e.dataTransfer.setData('text/plain', e.target.dataset.driverName); // Driver Name
+        const driverElement = e.target.closest('.driver');
+        if (!driverElement) return;
+        e.dataTransfer.setData('text/plain', driverElement.dataset.driverName); // Driver Name
         e.dataTransfer.setData('application/carpool-item-type', 'driver-on-board');
-        e.dataTransfer.setData('application/carpool-source-board', e.target.dataset.serviceType); // Track source board
+        e.dataTransfer.setData('application/carpool-source-board', driverElement.dataset.serviceType); // Track source board
+    }
+
+    function handleSeatChildDragStart(e) { // For children dragged FROM a seat
+        const seatDiv = e.target.closest('.seat');
+        if (!seatDiv || !seatDiv.classList.contains('seat-occupied')) {
+            e.preventDefault(); // Should not happen if listener attached correctly
+            return;
+        }
+        const serviceType = seatDiv.dataset.serviceType;
+        const seatDataProp = serviceType === 'pickup' ? 'assignedPickup' : 'assignedDropoff';
+        const driver = drivers.find(d => d.name === seatDiv.dataset.driverName);
+        const seat = driver?.seats[parseInt(seatDiv.dataset.seatIndex, 10)];
+        const childId = seat?.[seatDataProp]?.id;
+
+        if (!childId) {
+             e.preventDefault(); // No child assigned? Prevent drag.
+             return;
+        }
+
+        e.dataTransfer.setData('text/plain', childId);
+        e.dataTransfer.setData('application/carpool-item-type', 'child-from-seat');
+        e.dataTransfer.setData('application/carpool-source-service', serviceType); // Need to know which service to unassign
     }
 
     // Drop handler for allocation boards (to receive cars)
@@ -1000,14 +1417,47 @@
         dropoffBoard.addEventListener('drop', handleDropOnBoard);
         availableCarsArea.addEventListener('dragover', (e) => e.preventDefault());
         availableCarsArea.addEventListener('drop', handleDropOnSetupArea);
+        // Make Children Waiting Area a drop target for unassigning
+        childrenWaitingArea.addEventListener('dragover', (e) => e.preventDefault());
+        childrenWaitingArea.addEventListener('drop', handleDropOnUnassignArea); // Attach the new handler
     }
 
+    // Drop handler for the "Children Waiting" area (to unassign children)
+    function handleDropOnUnassignArea(e) {
+        e.preventDefault();
+        const itemType = e.dataTransfer.getData('application/carpool-item-type');
+        const childId = e.dataTransfer.getData('text/plain');
+        const sourceServiceType = e.dataTransfer.getData('application/carpool-source-service'); // 'pickup' or 'dropoff'
+
+        // Only accept children dragged FROM a seat
+        if (itemType !== 'child-from-seat' || !childId || !sourceServiceType) {
+            console.log("DEBUG: Drop on unassign area ignored - not child from seat.");
+            return;
+        }
+
+        console.log(`DEBUG: Unassigning child ${childId} from ${sourceServiceType}`);
+
+        // Unassign the child from the specific service
+        const affectedSeatInfo = unassignChild(childId, sourceServiceType);
+
+        if (affectedSeatInfo) {
+            saveData(); // Save after successful unassignment
+            // Granular update is better here than full render if possible
+            updateChildCardVisuals(childId);
+            updateSeatVisuals(affectedSeatInfo.driverName, affectedSeatInfo.seatIndex, affectedSeatInfo.serviceType);
+            // render(); // Fallback to full render if granular updates are complex
+            console.log(`DEBUG: Child ${childId} unassigned from ${sourceServiceType} seat ${affectedSeatInfo.seatIndex} of driver ${affectedSeatInfo.driverName}`);
+        } else {
+            console.log(`DEBUG: Child ${childId} was not assigned to ${sourceServiceType}, no change needed.`);
+        }
+    }
 
     // Drop handler for seats (receives children)
     function handleDropOnSeat(e) {
       e.preventDefault();
       const itemType = e.dataTransfer.getData('application/carpool-item-type');
-      if (itemType !== 'child') return; // Only accept children
+      // Only accept children coming from the waiting area
+      if (itemType !== 'child-from-waiting') return;
 
       const childId = e.dataTransfer.getData('text/plain');
       const child = children.find(c => c.id === childId);
@@ -1020,7 +1470,10 @@
       if (!driver || !driver.seats || seatIndex >= driver.seats.length) {
           console.error("Drop error: Driver or seat index invalid."); return;
       }
+
       const seat = driver.seats[seatIndex];
+
+      // Basic validation
       if (!child || !seat) {
         console.error("Drop error: Child or seat not found."); return;
       }
@@ -1037,12 +1490,13 @@
          alert(`Seat ${seatIndex + 1} for ${driver.name} is already occupied for ${serviceType}.`); return;
       }
       if (!seatTypeMatch) {
-         alert(`Seat type mismatch: ${child.name} needs ${child.seatTypeNeeded || 'Standard'}, seat is ${seat.type || 'Standard'}.`); return;
+         alert(`Seat type mismatch: ${child.name} needs ${child.seatTypeNeeded || 'None'}, seat is ${seat.type || 'None'}.`); return; // Changed Standard to None
       }
       // --- End Validation ---
 
       // --- Perform Assignment ---
-      unassignChild(childId, serviceType); // Unassign from previous location for this service
+      // Unassign from previous location *before* assigning to new one
+      const previouslyAffectedSeat = unassignChild(childId, serviceType); 
 
       const assignmentDetails = { name: child.name, id: child.id };
       if (serviceType === 'pickup') {
@@ -1054,36 +1508,130 @@
       }
       // --- End Assignment ---
 
-      saveData();
-      render();
+      saveData(); // Save after all changes are made
+
+      // Granular UI updates
+      updateChildCardVisuals(childId); // Update the child card in waiting area
+      updateSeatVisuals(driverName, seatIndex, serviceType); // Update the target seat
+      if (previouslyAffectedSeat) { // Update the seat the child was moved FROM
+          updateSeatVisuals(previouslyAffectedSeat.driverName, previouslyAffectedSeat.seatIndex, previouslyAffectedSeat.serviceType);
+      }
+      // render(); // Avoid full render
     }
 
-    // Helper to unassign a child from any seat for a specific service
-    // (Remains largely the same, just ensures child exists)
-    function unassignChild(childId, serviceMode) {
+    // Helper to unassign a child from a specific service (pickup or dropoff)
+    // Returns the details of the seat it was unassigned from, if any.
+    // NOTE: This function NO LONGER calls saveData(). The caller must call it.
+    function unassignChild(childId, serviceType) {
         const child = children.find(c => c.id === childId);
-        if (!child) return; // Child might have been removed
+        if (!child) return null; // Child not found
 
-        const assignmentProp = serviceMode === 'pickup' ? 'assignedPickup' : 'assignedDropoff';
-        const seatAssignmentProp = serviceMode === 'pickup' ? 'assignedPickup' : 'assignedDropoff';
+        const assignmentProp = serviceType === 'pickup' ? 'assignedPickup' : 'assignedDropoff';
+        const seatAssignmentProp = serviceType === 'pickup' ? 'assignedPickup' : 'assignedDropoff';
+
+        const oldAssignment = child[assignmentProp]; // Store old assignment details { driverName, seatIndex }
+        let affectedSeatInfo = null;
 
         // Clear child's assignment pointer for this service
         child[assignmentProp] = null;
 
-        // Clear seat's assignment pointer for this service
-        drivers.forEach(driver => {
-            driver.seats.forEach(seat => {
+        // Clear seat's assignment pointer for this service, if it matches
+        if (oldAssignment) {
+            const driver = drivers.find(d => d.name === oldAssignment.driverName);
+            if (driver && driver.seats && oldAssignment.seatIndex < driver.seats.length) {
+                const seat = driver.seats[oldAssignment.seatIndex];
                 if (seat[seatAssignmentProp] && seat[seatAssignmentProp].id === childId) {
                     seat[seatAssignmentProp] = null;
+                    affectedSeatInfo = { driverName: driver.name, seatIndex: oldAssignment.seatIndex, serviceType: serviceType };
                 }
-            });
-        });
+            }
+        }
+        // Note: We explicitly DO NOT call saveData or render here; the calling function MUST handle it.
+        return affectedSeatInfo; // Return info about the seat that was cleared
     }
+
+    // --- Granular UI Update Functions ---
+
+    // Updates the visual state of a single child card in the waiting area
+    function updateChildCardVisuals(childId) {
+        const child = children.find(c => c.id === childId);
+        if (!child) return;
+
+        const card = childrenWaitingArea.querySelector(`.child-card[data-id="${childId}"]`);
+        if (!card) return; // Card might not be rendered if not configured
+
+        // Update allocation status classes
+        card.classList.remove('fully-allocated', 'partially-allocated', 'unallocated');
+        const pickupAllocated = child.assignedPickup !== null;
+        const dropoffAllocated = child.assignedDropoff !== null;
+
+        if ((!child.pickUp || pickupAllocated) && (!child.dropOff || dropoffAllocated)) {
+            card.classList.add('fully-allocated');
+        } else if (pickupAllocated || dropoffAllocated) {
+            card.classList.add('partially-allocated');
+        } else {
+            card.classList.add('unallocated');
+        }
+
+        // Update delete button state
+        const removeBtn = card.querySelector('.remove-btn');
+        if (removeBtn) {
+            removeBtn.disabled = pickupAllocated || dropoffAllocated;
+        }
+
+        // Update displayed name (in case it was edited)
+        const nameSpan = card.querySelector('.child-name span'); // Target span
+         if (nameSpan) {
+             nameSpan.textContent = child.name || '[Unnamed Child]';
+             if (child.name) nameSpan.classList.remove('placeholder-text');
+             else nameSpan.classList.add('placeholder-text');
+         }
+    }
+
+    // Updates the visual state of a single seat on the allocation board
+    function updateSeatVisuals(driverName, seatIndex, serviceType) {
+        const driver = drivers.find(d => d.name === driverName);
+        if (!driver || !driver.seats || seatIndex >= driver.seats.length) return;
+
+        const seatData = driver.seats[seatIndex];
+        const boardArea = serviceType === 'pickup' ? pickupDriversArea : dropoffDriversArea;
+        const seatDiv = boardArea.querySelector(`.driver[data-driver-name="${driverName}"] .seat[data-seat-index="${seatIndex}"]`);
+
+        if (!seatDiv) return; // Seat element not found on the board
+
+        const assignedChild = serviceType === 'pickup' ? seatData.assignedPickup : seatData.assignedDropoff;
+
+        seatDiv.classList.remove('seat-occupied', 'seat-available');
+        seatDiv.innerHTML = ''; // Clear content
+
+        if (assignedChild) {
+            seatDiv.classList.add('seat-occupied');
+            seatDiv.textContent = assignedChild.name;
+            seatDiv.draggable = true; // Make occupied seat draggable
+            // Ensure the drag listener is attached only when occupied
+            seatDiv.removeEventListener('dragstart', handleSeatChildDragStart); // Remove first to prevent duplicates
+            seatDiv.addEventListener('dragstart', handleSeatChildDragStart);
+        } else {
+            seatDiv.classList.add('seat-available');
+            // Display more descriptive text for available seats
+            let seatTypeText = 'None';
+            if (seatData.type === 'front-facing') seatTypeText = 'Front';
+            else if (seatData.type === 'rear-facing') seatTypeText = 'Rear';
+            else if (seatData.type === 'booster') seatTypeText = 'Booster';
+            seatDiv.innerHTML = `Seat ${seatIndex + 1} (${seatTypeText})`;
+            seatDiv.draggable = false; // Empty seat not draggable
+            seatDiv.removeEventListener('dragstart', handleSeatChildDragStart);
+        }
+    }
+
+    // --- End Granular UI Update Functions ---
+
+
     // --- End Board Rendering & Drag/Drop Logic ---
 
 
     // --- Initial Render ---
-    render();
+    // render(); // Multiple render calls removed, ensure one call at the end of DOMContentLoaded setup
     // --- End Initial Render ---
 
   </script>
