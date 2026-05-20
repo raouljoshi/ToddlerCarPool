@@ -1,14 +1,45 @@
 import { useEffect, useState } from "react";
+import type {
+  AssignChildRequest,
+  CreateChildRequest,
+  CreateRoomRequest,
+  CreateVehicleRequest,
+  UpdateChildRequest,
+  UpdateVehicleRequest,
+} from "../application/dto";
+import { enabledDirections } from "../domain/allocation";
 import type { Room } from "../domain/types";
-import { ApiClientError, createRoom, getRoom } from "./api";
+import {
+  ApiClientError,
+  assignChild,
+  createChild,
+  createRoom,
+  createVehicle,
+  deleteChild,
+  deleteVehicle,
+  getRoom,
+  unassignChild,
+  updateChild,
+  updateVehicle,
+} from "./api";
 import { HeroCars } from "./components/HeroCars";
 import { getInitialLanguage, saveLanguage, translations, type Language } from "./i18n";
+import { AllocateView } from "./views/AllocateView";
+import { ChildWizard } from "./views/ChildWizard";
+import { OrganizerWizard } from "./views/OrganizerWizard";
+import { RoomOverview } from "./views/RoomOverview";
+import { VehicleWizard } from "./views/VehicleWizard";
 import "./styles.css";
 
 type View =
   | { kind: "landing" }
   | { kind: "create-wizard" }
-  | { kind: "room-overview"; justCreated: boolean };
+  | { kind: "room-overview"; justCreated: boolean }
+  | { kind: "add-vehicle" }
+  | { kind: "add-child" }
+  | { kind: "edit-vehicle"; vehicleId: string }
+  | { kind: "edit-child"; childId: string }
+  | { kind: "allocate"; childId: string };
 
 export function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage);
@@ -45,14 +76,130 @@ export function App() {
     }
   }
 
-  async function handleQuickCreate() {
+  async function handleCreateRoom(request: CreateRoomRequest) {
     setLoading(true);
     setError("");
     try {
-      const next = await createRoom({});
+      const next = await createRoom(request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: true });
       window.history.replaceState(null, "", `/?room=${encodeURIComponent(next.code)}`);
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateVehicle(request: CreateVehicleRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await createVehicle(room.code, request);
+      setRoom(next);
+      setView({ kind: "room-overview", justCreated: false });
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdateVehicle(vehicleId: string, request: UpdateVehicleRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await updateVehicle(room.code, vehicleId, request);
+      setRoom(next);
+      setView({ kind: "room-overview", justCreated: false });
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteVehicle(vehicleId: string) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await deleteVehicle(room.code, vehicleId);
+      setRoom(next);
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateChild(request: CreateChildRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await createChild(room.code, request);
+      setRoom(next);
+      setView({ kind: "room-overview", justCreated: false });
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdateChild(childId: string, request: UpdateChildRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await updateChild(room.code, childId, request);
+      setRoom(next);
+      setView({ kind: "room-overview", justCreated: false });
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteChild(childId: string) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await deleteChild(room.code, childId);
+      setRoom(next);
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAssignChild(request: AssignChildRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await assignChild(room.code, request);
+      setRoom(next);
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUnassign(assignmentId: string) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await unassignChild(room.code, assignmentId);
+      setRoom(next);
     } catch (caught) {
       setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
     } finally {
@@ -69,6 +216,10 @@ export function App() {
     }
   }
 
+  function goToOverview() {
+    if (room) setView({ kind: "room-overview", justCreated: false });
+  }
+
   return (
     <main className="app-shell">
       <Header
@@ -82,7 +233,7 @@ export function App() {
       {error ? <Feedback kind="error" title={t.errorTitle} message={error} /> : null}
       {notice ? <Feedback kind="info" title={notice} /> : null}
 
-      {view.kind === "landing" ? (
+      {view.kind === "landing" && (
         <LandingView
           t={t}
           joinCode={joinCode}
@@ -92,23 +243,24 @@ export function App() {
           loading={loading}
           hasRoomParam={Boolean(new URLSearchParams(window.location.search).get("room"))}
         />
-      ) : null}
+      )}
 
-      {view.kind === "create-wizard" ? (
-        <CreateWizardShell
+      {view.kind === "create-wizard" && (
+        <OrganizerWizard
           t={t}
-          onCancel={() => setView({ kind: "landing" })}
-          onQuickCreate={handleQuickCreate}
           loading={loading}
+          onCancel={() => setView({ kind: "landing" })}
+          onSubmit={(request) => void handleCreateRoom(request)}
         />
-      ) : null}
+      )}
 
-      {view.kind === "room-overview" && room ? (
-        <RoomOverviewShell
+      {view.kind === "room-overview" && room && (
+        <RoomOverview
           t={t}
           language={language}
           room={room}
           justCreated={view.justCreated}
+          loading={loading}
           onCopyCode={() => void copyText(room.code, t.codeCopied)}
           onCopyLink={() =>
             void copyText(
@@ -117,8 +269,84 @@ export function App() {
             )
           }
           onRefresh={() => void loadRoom(room.code, false)}
+          onAddVehicle={() => setView({ kind: "add-vehicle" })}
+          onAddChild={() => setView({ kind: "add-child" })}
+          onEditVehicle={(vehicleId) => setView({ kind: "edit-vehicle", vehicleId })}
+          onEditChild={(childId) => setView({ kind: "edit-child", childId })}
+          onDeleteVehicle={(vehicleId) => void handleDeleteVehicle(vehicleId)}
+          onDeleteChild={(childId) => void handleDeleteChild(childId)}
+          onUnassign={(assignmentId) => void handleUnassign(assignmentId)}
+          onAllocate={(childId) => setView({ kind: "allocate", childId })}
         />
-      ) : null}
+      )}
+
+      {view.kind === "add-vehicle" && room && (
+        <VehicleWizard
+          mode="create"
+          t={t}
+          enabledDirections={enabledDirections(room)}
+          loading={loading}
+          onCancel={goToOverview}
+          onSubmit={(request) => void handleCreateVehicle(request)}
+        />
+      )}
+
+      {view.kind === "add-child" && room && (
+        <ChildWizard
+          mode="create"
+          t={t}
+          enabledDirections={enabledDirections(room)}
+          loading={loading}
+          onCancel={goToOverview}
+          onSubmit={(request) => void handleCreateChild(request)}
+        />
+      )}
+
+      {view.kind === "edit-vehicle" && room && (() => {
+        const vehicle = room.vehicles.find((v) => v.id === view.vehicleId);
+        if (!vehicle) return null;
+        return (
+          <VehicleWizard
+            mode="edit"
+            vehicle={vehicle}
+            t={t}
+            enabledDirections={enabledDirections(room)}
+            loading={loading}
+            onCancel={goToOverview}
+            onSubmit={(request) => void handleUpdateVehicle(view.vehicleId, request)}
+          />
+        );
+      })()}
+
+      {view.kind === "edit-child" && room && (() => {
+        const child = room.children.find((c) => c.id === view.childId);
+        if (!child) return null;
+        return (
+          <ChildWizard
+            mode="edit"
+            child={child}
+            t={t}
+            enabledDirections={enabledDirections(room)}
+            loading={loading}
+            onCancel={goToOverview}
+            onSubmit={(request) => void handleUpdateChild(view.childId, request)}
+          />
+        );
+      })()}
+
+      {view.kind === "allocate" && room && (
+        <AllocateView
+          t={t}
+          language={language}
+          room={room}
+          childId={view.childId}
+          loading={loading}
+          onBack={goToOverview}
+          onAssign={async (request) => {
+            await handleAssignChild(request);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -211,100 +439,6 @@ function LandingView({
         </article>
       </div>
     </section>
-  );
-}
-
-function CreateWizardShell({
-  t,
-  onCancel,
-  onQuickCreate,
-  loading,
-}: {
-  t: (typeof translations)["en"];
-  onCancel: () => void;
-  onQuickCreate: () => void;
-  loading: boolean;
-}) {
-  // Phase 4 placeholder: full multi-step wizard ships in Phase 5.
-  // For now this surface lets you back out or create a default room.
-  return (
-    <section className="panel wizard">
-      <h2>{t.organizerWizardTitle}</h2>
-      <p className="muted">{t.reviewIntro}</p>
-      <div className="wizard-actions">
-        <button type="button" className="secondary" onClick={onCancel}>
-          {t.cancel}
-        </button>
-        <button type="button" className="accent" onClick={onQuickCreate} disabled={loading}>
-          {t.createRoom}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function RoomOverviewShell({
-  t,
-  language,
-  room,
-  justCreated,
-  onCopyCode,
-  onCopyLink,
-  onRefresh,
-}: {
-  t: (typeof translations)["en"];
-  language: Language;
-  room: Room;
-  justCreated: boolean;
-  onCopyCode: () => void;
-  onCopyLink: () => void;
-  onRefresh: () => void;
-}) {
-  return (
-    <>
-      <section className="room-hero">
-        <span className="room-code-pill">{room.code}</span>
-        {room.settings.label ? <h1>{room.settings.label}</h1> : null}
-        <div className="room-meta">
-          <span>
-            {t.expires}{" "}
-            <strong>
-              {new Date(room.expiresAt).toLocaleDateString(language === "sv" ? "sv-SE" : "en-US")}
-            </strong>
-          </span>
-        </div>
-        <div className="button-row">
-          <button type="button" className="secondary" onClick={onCopyCode}>
-            {t.copyCode}
-          </button>
-          <button type="button" className="secondary" onClick={onCopyLink}>
-            {t.copyLink}
-          </button>
-          <button type="button" className="ghost" onClick={onRefresh}>
-            {t.refresh}
-          </button>
-        </div>
-        {justCreated ? <p className="muted">{t.roomCreated}</p> : null}
-      </section>
-
-      <section className="panel">
-        <div className="section-title">
-          <h2>{t.queueHeading}</h2>
-        </div>
-        <p className="empty">{t.queueEmpty}</p>
-      </section>
-
-      <section className="panel">
-        <div className="section-title">
-          <h2>{t.driversHeading}</h2>
-        </div>
-        <p className="empty">{t.driversEmpty}</p>
-      </section>
-
-      <button type="button" className="fab" aria-label="Add" disabled>
-        +
-      </button>
-    </>
   );
 }
 
