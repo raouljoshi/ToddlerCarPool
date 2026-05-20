@@ -71,6 +71,13 @@ const en = {
   familyWizardHelp: "Add one family at a time. You can use simple labels like Family A or Maja's family.",
   reviewHelp: "Check the summary, then save it to the shared plan.",
   errorTitle: "Something needs attention",
+  allocationStep1: "1 — Tap a child to select a ride need",
+  allocationStep2: "2 — Tap a seat below to assign it",
+  startNewRoom: "Create a short-lived planning room and share the code.",
+  joinExistingRoom: "Enter your room code to join an existing plan.",
+  noFamiliesHint: "Once families are added, their ride needs will appear here.",
+  createRoomRole: "I'm the organizer",
+  joinRoomRole: "I have a room code",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -147,6 +154,13 @@ const sv: Translation = {
   familyWizardHelp: "Lägg till en familj i taget. Använd enkla etiketter som Familj A eller Majas familj.",
   reviewHelp: "Kontrollera sammanfattningen och spara den sedan till den gemensamma planen.",
   errorTitle: "Något behöver åtgärdas",
+  allocationStep1: "1 — Tryck på ett barn för att välja ett skjutsbehov",
+  allocationStep2: "2 — Tryck på en plats nedan för att tilldela",
+  startNewRoom: "Skapa ett kortlivat rum och dela koden.",
+  joinExistingRoom: "Ange din rumskod för att gå med i en befintlig plan.",
+  noFamiliesHint: "När familjer lagts till visas deras skjutsbehov här.",
+  createRoomRole: "Jag är organisatören",
+  joinRoomRole: "Jag har en rumskod",
 };
 
 export const translations: Record<Language, Translation> = { en, sv };

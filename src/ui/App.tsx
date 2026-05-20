@@ -129,26 +129,43 @@ export function App() {
   }
 
   if (!room) {
+    const hasRoomParam = Boolean(new URLSearchParams(window.location.search).get("room"));
     return (
       <main className="app-shell">
         <Header language={language} onLanguage={languageChange} />
         <section className="hero-panel">
           <div>
-            <p className="eyebrow">{t.organizerSetup}</p>
-            <h1>{t.appName}</h1>
-            <p>{t.intro}</p>
+            <h1 aria-label={t.appName}>🚗 {t.appName}</h1>
             <p className="privacy-copy">{t.privacy}</p>
           </div>
-          <OrganizerWizard
-            step={setupStep}
-            setStep={setSetupStep}
-            draft={settingsDraft}
-            setDraft={setSettingsDraft}
-            onCreate={handleCreateRoom}
-            loading={loading}
-            t={t}
-          />
-          <JoinPanel code={joinCode} setCode={setJoinCode} onJoin={() => void loadRoom(joinCode)} loading={loading} t={t} />
+          <div className="landing-role-cards">
+            <div className="role-card primary">
+              <span className="role-card-icon" aria-hidden="true">📋</span>
+              <h2>{t.createRoomRole}</h2>
+              <p>{t.startNewRoom}</p>
+              <OrganizerWizard
+                step={setupStep}
+                setStep={setSetupStep}
+                draft={settingsDraft}
+                setDraft={setSettingsDraft}
+                onCreate={handleCreateRoom}
+                loading={loading}
+                t={t}
+              />
+            </div>
+            <div className={`role-card secondary${hasRoomParam ? " highlighted" : ""}`}>
+              <span className="role-card-icon" aria-hidden="true">🔑</span>
+              <h2>{t.joinRoomRole}</h2>
+              <p>{t.joinExistingRoom}</p>
+              <JoinPanel
+                code={joinCode}
+                setCode={setJoinCode}
+                onJoin={() => void loadRoom(joinCode)}
+                loading={loading}
+                t={t}
+              />
+            </div>
+          </div>
           <Feedback error={error} notice={notice} title={t.errorTitle} />
         </section>
       </main>
@@ -184,8 +201,10 @@ export function App() {
 
       {createdRoom ? (
         <section className="success-panel">
-          <strong>{t.roomCreated}</strong>
-          <p>{room.code}</p>
+          <strong>{t.roomCreated} 🎉</strong>
+          <div>
+            <span className="room-code-display">{room.code}</span>
+          </div>
           <div className="button-row">
             <button onClick={() => void copyText(room.code, t.codeCopied)}>{t.copyCode}</button>
             <button className="secondary" onClick={() => void copyText(window.location.href, t.linkCopied)}>
@@ -408,7 +427,6 @@ function JoinPanel({
 }) {
   return (
     <div className="join-panel">
-      <strong>{t.joinPrompt}</strong>
       <div className="join-row">
         <label>
           {t.roomCode}
@@ -568,20 +586,37 @@ function PlanningOverview({
 }) {
   return (
     <>
+      <div className="allocation-step-guide" aria-label="Workflow guide">
+        <span>{t.allocationStep1}</span>
+        <span>{t.allocationStep2}</span>
+      </div>
       <section className="allocation-grid">
         <div className="panel">
           <h2>{t.chooseNeed}</h2>
-          {allocations.length === 0 ? <p className="empty">{t.noNeeds}</p> : null}
+          {allocations.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden="true">👶</span>
+              <p>{t.noNeeds}</p>
+              <p>{t.noFamiliesHint}</p>
+            </div>
+          ) : null}
           {allocations.map((item) => (
             <article className={`card status-${item.status}`} key={item.child.id}>
               <div>
                 <h3>{item.child.label}</h3>
                 <p>{item.family.displayLabel}</p>
-                <span>{statusCopy(item.status, t)}</span>
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.25rem" }}>
+                  <SeatBadge seatType={item.child.seatType} t={t} />
+                  <StatusBadge status={item.status} t={t} />
+                </div>
               </div>
               <div className="chip-row">
                 {item.missingDirections.map((direction) => (
-                  <button className="chip" key={direction} onClick={() => setSelectedChild({ child: item.child, direction })}>
+                  <button
+                    className={`chip${selectedChild?.child.id === item.child.id && selectedChild.direction === direction ? " active-need" : ""}`}
+                    key={direction}
+                    onClick={() => setSelectedChild({ child: item.child, direction })}
+                  >
                     {directionLabel(direction, room, t)}
                   </button>
                 ))}
@@ -596,7 +631,12 @@ function PlanningOverview({
         </div>
         <div className="panel">
           <h2>{t.chooseSeat}</h2>
-          {!selectedChild ? <p className="empty">{t.noneOpen}</p> : null}
+          {!selectedChild ? (
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden="true">👆</span>
+              <p>{t.noneOpen}</p>
+            </div>
+          ) : null}
           {selectedChild ? (
             <div className="selection-banner">
               {selectedChild.child.label} · {directionLabel(selectedChild.direction, room, t)}
@@ -606,9 +646,8 @@ function PlanningOverview({
             <article className="card" key={`${item.seat.id}-${item.direction}`}>
               <div>
                 <h3>{item.seat.label}</h3>
-                <p>
-                  {item.family.displayLabel} · {seatTypeLabel(item.seat.seatType, t)}
-                </p>
+                <p>{item.family.displayLabel}</p>
+                <SeatBadge seatType={item.seat.seatType} t={t} />
               </div>
               <button
                 onClick={() =>
@@ -623,7 +662,12 @@ function PlanningOverview({
       </section>
       <section className="panel">
         <h2>{t.currentPlan}</h2>
-        {room.families.length === 0 ? <p className="empty">{t.noFamilies}</p> : null}
+        {room.families.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon" aria-hidden="true">🏠</span>
+            <p>{t.noFamilies}</p>
+          </div>
+        ) : null}
         {room.families.map((family) => (
           <article className="family-row" key={family.id}>
             <div>
@@ -633,7 +677,14 @@ function PlanningOverview({
                 {t.offeredSeats.toLowerCase()}
               </p>
             </div>
-            <button className="danger" onClick={() => onDeleteFamily(family.id)}>
+            <button
+              className="danger"
+              onClick={() => {
+                if (window.confirm(`Remove ${family.displayLabel}?`)) {
+                  onDeleteFamily(family.id);
+                }
+              }}
+            >
               {t.deleteFamily}
             </button>
           </article>
@@ -687,7 +738,7 @@ function RepeatingInputs<T extends { label: string; directions: Direction[]; sea
             >
               {seatTypes.map((seatType) => (
                 <option value={seatType} key={seatType}>
-                  {seatTypeLabel(seatType, t)}
+                  {seatTypeIcon(seatType)} {seatTypeLabel(seatType, t)}
                 </option>
               ))}
             </select>
@@ -763,8 +814,24 @@ function seatTypeLabel(seatType: SeatType, t: Translation): string {
   return t[seatType];
 }
 
-function statusCopy(status: string, t: Translation): string {
-  if (status === "fully-allocated") return t.fullyAllocated;
-  if (status === "partially-allocated") return t.partiallyAllocated;
-  return t.unallocated;
+function seatTypeIcon(seatType: SeatType): string {
+  if (seatType === "rear-facing") return "⬅️";
+  if (seatType === "front-facing") return "➡️";
+  if (seatType === "booster") return "🪑";
+  return "💺";
+}
+
+function SeatBadge({ seatType, t }: { seatType: SeatType; t: Translation }) {
+  return (
+    <span className="seat-badge">
+      {seatTypeIcon(seatType)} {seatTypeLabel(seatType, t)}
+    </span>
+  );
+}
+
+function StatusBadge({ status, t }: { status: string; t: Translation }) {
+  const emoji = status === "fully-allocated" ? "✅" : status === "partially-allocated" ? "⚠️" : "❌";
+  const label =
+    status === "fully-allocated" ? t.fullyAllocated : status === "partially-allocated" ? t.partiallyAllocated : t.unallocated;
+  return <span className={`status-badge ${status}`}>{emoji} {label}</span>;
 }
