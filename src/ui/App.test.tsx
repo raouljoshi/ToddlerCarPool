@@ -3,14 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
 describe("App", () => {
-  it("renders bilingual entry controls", () => {
+  it("renders landing with EN/SV toggle and join input", () => {
     vi.stubGlobal("fetch", vi.fn());
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "ToddlerCarPool" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EN" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "SV" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Event name" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /room code|rumskod/i })).toBeInTheDocument();
   });
 });
