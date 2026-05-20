@@ -1,4 +1,12 @@
-import type { AssignmentRequest, CreateRoomRequest, FamilyRequest, UpdateSettingsRequest } from "../application/dto";
+import type {
+  AssignChildRequest,
+  CreateChildRequest,
+  CreateRoomRequest,
+  CreateVehicleRequest,
+  UpdateChildRequest,
+  UpdateSettingsRequest,
+  UpdateVehicleRequest,
+} from "../application/dto";
 import type { AppError, Result } from "../domain/result";
 import { normalizeRoomCode } from "../domain/validation";
 import type { CarpoolInstance } from "../worker/carpool-instance";
@@ -8,13 +16,12 @@ export interface WorkerEnv {
   ASSETS: Fetcher;
 }
 
-interface RouteMatch {
-  code?: string;
-  familyId?: string;
-  assignmentId?: string;
-}
-
 type RoomStub = DurableObjectStub<CarpoolInstance>;
+
+interface RouteMatch {
+  code: string;
+  id?: string;
+}
 
 export async function handleRequest(request: Request, env: WorkerEnv): Promise<Response> {
   const url = new URL(request.url);
@@ -29,46 +36,99 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       return toJson(await stub.createRoom(await readJson<CreateRoomRequest>(request)), 201);
     }
 
-    const roomsMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)$/);
-    if (roomsMatch && request.method === "GET") {
-      return toJson(await getRoomStub(env, roomsMatch.code).getRoom());
-    }
-
-    if (roomsMatch && request.method === "PUT") {
-      return toJson(await getRoomStub(env, roomsMatch.code).updateSettings(await readJson<UpdateSettingsRequest>(request)));
+    const roomMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)$/);
+    if (roomMatch && request.method === "GET") {
+      return toJson(await getRoomStub(env, roomMatch.code).getRoom());
     }
 
     const settingsMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/settings$/);
     if (settingsMatch && request.method === "PUT") {
-      return toJson(await getRoomStub(env, settingsMatch.code).updateSettings(await readJson<UpdateSettingsRequest>(request)));
-    }
-
-    const familiesMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/families$/);
-    if (familiesMatch && request.method === "POST") {
-      return toJson(await getRoomStub(env, familiesMatch.code).addFamily(await readJson<FamilyRequest>(request)), 201);
-    }
-
-    const familyMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/families\/([a-zA-Z0-9-]+)$/);
-    if (familyMatch && request.method === "PUT" && familyMatch.familyId) {
       return toJson(
-        await getRoomStub(env, familyMatch.code).updateFamily(familyMatch.familyId, await readJson<FamilyRequest>(request)),
+        await getRoomStub(env, settingsMatch.code).updateSettings(
+          await readJson<UpdateSettingsRequest>(request),
+        ),
       );
     }
-    if (familyMatch && request.method === "DELETE" && familyMatch.familyId) {
-      return toJson(await getRoomStub(env, familyMatch.code).deleteFamily(familyMatch.familyId));
+
+    const vehiclesMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/vehicles$/);
+    if (vehiclesMatch && request.method === "POST") {
+      return toJson(
+        await getRoomStub(env, vehiclesMatch.code).createVehicle(
+          await readJson<CreateVehicleRequest>(request),
+        ),
+        201,
+      );
     }
 
-    const assignmentsMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/assignments$/);
+    const vehicleMatch = matchPath(
+      url.pathname,
+      /^\/api\/rooms\/([a-zA-Z0-9-]+)\/vehicles\/([a-zA-Z0-9-]+)$/,
+    );
+    if (vehicleMatch && request.method === "PUT" && vehicleMatch.id) {
+      return toJson(
+        await getRoomStub(env, vehicleMatch.code).updateVehicle(
+          vehicleMatch.id,
+          await readJson<UpdateVehicleRequest>(request),
+        ),
+      );
+    }
+    if (vehicleMatch && request.method === "DELETE" && vehicleMatch.id) {
+      return toJson(await getRoomStub(env, vehicleMatch.code).deleteVehicle(vehicleMatch.id));
+    }
+
+    const childrenMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/children$/);
+    if (childrenMatch && request.method === "POST") {
+      return toJson(
+        await getRoomStub(env, childrenMatch.code).createChild(
+          await readJson<CreateChildRequest>(request),
+        ),
+        201,
+      );
+    }
+
+    const childMatch = matchPath(
+      url.pathname,
+      /^\/api\/rooms\/([a-zA-Z0-9-]+)\/children\/([a-zA-Z0-9-]+)$/,
+    );
+    if (childMatch && request.method === "PUT" && childMatch.id) {
+      return toJson(
+        await getRoomStub(env, childMatch.code).updateChild(
+          childMatch.id,
+          await readJson<UpdateChildRequest>(request),
+        ),
+      );
+    }
+    if (childMatch && request.method === "DELETE" && childMatch.id) {
+      return toJson(await getRoomStub(env, childMatch.code).deleteChild(childMatch.id));
+    }
+
+    const assignmentsMatch = matchPath(
+      url.pathname,
+      /^\/api\/rooms\/([a-zA-Z0-9-]+)\/assignments$/,
+    );
     if (assignmentsMatch && request.method === "POST") {
-      return toJson(await getRoomStub(env, assignmentsMatch.code).assignSeat(await readJson<AssignmentRequest>(request)), 201);
+      return toJson(
+        await getRoomStub(env, assignmentsMatch.code).assignChild(
+          await readJson<AssignChildRequest>(request),
+        ),
+        201,
+      );
     }
 
-    const assignmentMatch = matchPath(url.pathname, /^\/api\/rooms\/([a-zA-Z0-9-]+)\/assignments\/([a-zA-Z0-9-]+)$/);
-    if (assignmentMatch && request.method === "DELETE" && assignmentMatch.assignmentId) {
-      return toJson(await getRoomStub(env, assignmentMatch.code).deleteAssignment(assignmentMatch.assignmentId));
+    const assignmentMatch = matchPath(
+      url.pathname,
+      /^\/api\/rooms\/([a-zA-Z0-9-]+)\/assignments\/([a-zA-Z0-9-]+)$/,
+    );
+    if (assignmentMatch && request.method === "DELETE" && assignmentMatch.id) {
+      return toJson(
+        await getRoomStub(env, assignmentMatch.code).unassignChild(assignmentMatch.id),
+      );
     }
 
-    return Response.json({ error: { code: "VALIDATION_ERROR", message: "Route not found." } }, { status: 404 });
+    return Response.json(
+      { error: { code: "VALIDATION_ERROR", message: "Route not found." } },
+      { status: 404 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error.";
     return Response.json({ error: { code: "VALIDATION_ERROR", message } }, { status: 400 });
@@ -99,8 +159,7 @@ function matchPath(pathname: string, pattern: RegExp): RouteMatch | undefined {
   if (!match) return undefined;
   return {
     code: normalizeRoomCode(match[1] ?? ""),
-    familyId: match[2],
-    assignmentId: match[2],
+    id: match[2],
   };
 }
 
@@ -112,16 +171,17 @@ function toJson<T>(result: Result<T>, successStatus = 200): Response {
 function statusForError(error: AppError): number {
   switch (error.code) {
     case "ROOM_NOT_FOUND":
-      return 404;
-    case "ROOM_EXPIRED":
-      return 410;
-    case "FAMILY_NOT_FOUND":
+    case "VEHICLE_NOT_FOUND":
     case "CHILD_NOT_FOUND":
     case "SEAT_NOT_FOUND":
       return 404;
+    case "ROOM_EXPIRED":
+      return 410;
     case "SEAT_ALREADY_ASSIGNED":
-    case "INCOMPATIBLE_SEAT":
+    case "INCOMPATIBLE_ACCESSORY":
     case "DIRECTION_NOT_NEEDED_OR_OFFERED":
+    case "VEHICLE_HAS_ASSIGNMENTS":
+    case "CHILD_HAS_ASSIGNMENTS":
       return 409;
     case "LIMIT_EXCEEDED":
       return 413;
