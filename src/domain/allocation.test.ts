@@ -156,14 +156,14 @@ describe("getCandidateVehicles — hard filter", () => {
 describe("validateAssignment", () => {
   it("rejects unknown child", () => {
     const room = buildRoom({ vehicles: [vehicle()] });
-    const result = validateAssignment(room, { childId: "missing", vehicleId: "v-1", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "missing", vehicleId: "v-1", direction: "outbound", seatIndex: 0 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("CHILD_NOT_FOUND");
   });
 
   it("rejects unknown vehicle", () => {
     const room = buildRoom({ children: [child()] });
-    const result = validateAssignment(room, { childId: "c-1", vehicleId: "missing", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "missing", direction: "outbound", seatIndex: 0 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("VEHICLE_NOT_FOUND");
   });
@@ -173,7 +173,7 @@ describe("validateAssignment", () => {
       vehicles: [vehicle({ directions: ["inbound"] })],
       children: [child()],
     });
-    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound", seatIndex: 0 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("DIRECTION_NOT_NEEDED_OR_OFFERED");
   });
@@ -184,7 +184,7 @@ describe("validateAssignment", () => {
       children: [child()],
       assignments: [assignment({ direction: "outbound" })],
     });
-    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound", seatIndex: 1 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("SEAT_ALREADY_ASSIGNED");
   });
@@ -200,15 +200,33 @@ describe("validateAssignment", () => {
         assignment({ id: "a-1", childId: "claimed", seatIndex: 0, direction: "outbound" }),
       ],
     });
-    const result = validateAssignment(room, { childId: "queue", vehicleId: "v-1", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "queue", vehicleId: "v-1", direction: "outbound", seatIndex: 1 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("INCOMPATIBLE_ACCESSORY");
   });
 
   it("accepts a compatible candidate", () => {
     const room = buildRoom({ vehicles: [vehicle()], children: [child()] });
-    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound" });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound", seatIndex: 0 });
     expect(result.ok).toBe(true);
+  });
+
+  it("rejects an out-of-range exact seat", () => {
+    const room = buildRoom({ vehicles: [vehicle({ seatCount: 2 })], children: [child()] });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound", seatIndex: 2 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("SEAT_NOT_FOUND");
+  });
+
+  it("rejects an occupied exact seat", () => {
+    const room = buildRoom({
+      vehicles: [vehicle({ seatCount: 2 })],
+      children: [child(), child({ id: "c-2", name: "Ben" })],
+      assignments: [assignment({ childId: "c-2", direction: "outbound", seatIndex: 0 })],
+    });
+    const result = validateAssignment(room, { childId: "c-1", vehicleId: "v-1", direction: "outbound", seatIndex: 0 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("SEAT_ALREADY_ASSIGNED");
   });
 });
 

@@ -4,7 +4,11 @@ export type RoomDto = Room;
 
 export type CreateRoomRequest = Partial<RoomSettings>;
 
-export type UpdateSettingsRequest = Partial<RoomSettings>;
+export type ReturnTripSetup = "mirror-seats" | "same-participants" | "empty";
+
+export type UpdateSettingsRequest = Partial<RoomSettings> & {
+  returnTripSetup?: ReturnTripSetup;
+};
 
 export interface ReservedRiderRequest {
   seatIndex: number;
@@ -45,4 +49,5 @@ export interface AssignChildRequest {
   childId: string;
   vehicleId: string;
   direction: Direction;
+  seatIndex: number;
 }

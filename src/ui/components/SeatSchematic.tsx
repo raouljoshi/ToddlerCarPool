@@ -1,5 +1,7 @@
 export type SeatDisplayState =
   | { kind: "empty" }
+  | { kind: "available"; name?: string }
+  | { kind: "unavailable"; reason: string }
   | { kind: "reserved"; name: string }
   | { kind: "assigned"; name: string };
 
@@ -48,52 +50,79 @@ export function SeatSchematic({ seats, onTap, label }: SeatSchematicProps) {
       role={interactive ? undefined : "img"}
       aria-label={label ?? `${seats.length} seats`}
     >
-      {rows.map((row, ri) => (
-        <div key={ri} className="seat-row">
-          {row.map((si) => {
-            const s = seats[si];
-            const cls = [
-              "seat",
-              s.kind !== "empty" ? s.kind : "",
-              interactive ? "tappable" : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-            const label =
-              s.kind !== "empty"
-                ? `Seat ${si + 1}: ${s.name}`
-                : `Seat ${si + 1}`;
-            const abbr = s.kind !== "empty" ? initials(s.name) : "";
-            return interactive ? (
-              <button
-                key={si}
-                type="button"
-                className={cls}
-                onClick={() => onTap!(si)}
-                aria-label={label}
-                title={s.kind !== "empty" ? s.name : undefined}
-              >
-                {abbr}
-                {s.kind !== "empty" && (
-                  <span className="seat-label">{firstName(s.name)}</span>
-                )}
-              </button>
-            ) : (
-              <div
-                key={si}
-                className={cls}
-                aria-label={label}
-                title={s.kind !== "empty" ? s.name : undefined}
-              >
-                {abbr}
-                {s.kind !== "empty" && (
-                  <span className="seat-label">{firstName(s.name)}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+      <div className="car-shell" aria-hidden="true">
+        <span className="car-windshield" />
+        <span className="car-bonnet" />
+      </div>
+      <div className="seat-cabin">
+        {rows.map((row, ri) => (
+          <div key={ri} className="seat-row">
+            {row.map((si) => {
+              const s = seats[si];
+              const cls = [
+                "seat",
+                s.kind !== "empty" ? s.kind : "",
+                interactive ? "tappable" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const label =
+                s.kind === "assigned" || s.kind === "reserved"
+                  ? `Seat ${si + 1}: ${s.name}`
+                  : s.kind === "available"
+                    ? `Seat ${si + 1}: available`
+                    : s.kind === "unavailable"
+                      ? `Seat ${si + 1}: ${s.reason}`
+                      : `Seat ${si + 1}`;
+              const abbr =
+                s.kind === "assigned" || s.kind === "reserved"
+                  ? initials(s.name)
+                  : s.kind === "available"
+                    ? "+"
+                    : s.kind === "unavailable"
+                      ? "!"
+                      : "";
+              const title =
+                s.kind === "assigned" || s.kind === "reserved"
+                  ? s.name
+                  : s.kind === "unavailable"
+                    ? s.reason
+                    : undefined;
+              return interactive ? (
+                <button
+                  key={si}
+                  type="button"
+                  className={cls}
+                  onClick={() => onTap!(si)}
+                  aria-label={label}
+                  title={title}
+                >
+                  <span className="seat-mark">{abbr}</span>
+                  {(s.kind === "assigned" || s.kind === "reserved") && (
+                    <span className="seat-label">{firstName(s.name)}</span>
+                  )}
+                </button>
+              ) : (
+                <div
+                  key={si}
+                  className={cls}
+                  aria-label={label}
+                  title={title}
+                >
+                  <span className="seat-mark">{abbr}</span>
+                  {(s.kind === "assigned" || s.kind === "reserved") && (
+                    <span className="seat-label">{firstName(s.name)}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="car-axle" aria-hidden="true">
+        <span />
+        <span />
+      </div>
     </div>
   );
 }

@@ -1,15 +1,13 @@
 import {
-  childAssignmentCount,
   enabledDirections,
   findChild,
   findVehicle,
-  nextFreeSeatIndex,
   validateAssignment,
-  vehicleAssignmentCount,
+  validateRoomAssignments,
 } from "../domain/allocation";
 import { err, ok, type Result } from "../domain/result";
 import { isExpired } from "../domain/time";
-import type { Assignment, Child, Room, Vehicle } from "../domain/types";
+import type { Assignment, Child, Direction, Room, Vehicle } from "../domain/types";
 import { EMPTY_BORROWS, ROOM_LIMITS } from "../domain/types";
 import {
   validateChildInput,
@@ -59,14 +57,24 @@ export class RoomUseCases {
   async updateSettings(request: UpdateSettingsRequest): Promise<Result<Room>> {
     const roomResult = await this.getRoom();
     if (!roomResult.ok) return roomResult;
-    const settings = validateSettings({ ...roomResult.value.settings, ...request });
+    const room = roomResult.value;
+    const settings = validateSettings({ ...room.settings, ...request });
     if (!settings.ok) return settings;
-    return ok(
-      await this.repository.saveRoom({
-        ...roomResult.value,
+    const setupRoom = this.applyReturnTripSetup(
+      {
+        ...room,
         settings: settings.value,
         updatedAt: this.nowIso(),
-      }),
+      },
+      room,
+      request.returnTripSetup,
+    );
+    if (!setupRoom.ok) return setupRoom;
+    const nextRoom = setupRoom.value;
+    const integrity = validateRoomAssignments(nextRoom);
+    if (!integrity.ok) return integrity;
+    return ok(
+      await this.repository.saveRoom(nextRoom),
     );
   }
 
@@ -155,13 +163,6 @@ export class RoomUseCases {
     const existing = findVehicle(room, vehicleId);
     if (!existing) return err("VEHICLE_NOT_FOUND", "Vehicle was not found.");
 
-    if (vehicleAssignmentCount(room, vehicleId) > 0) {
-      return err(
-        "VEHICLE_HAS_ASSIGNMENTS",
-        "Move all riders out of this vehicle before editing.",
-      );
-    }
-
     const input = validateVehicleUpdate(request, existing, enabledDirections(room));
     if (!input.ok) return input;
 
@@ -176,13 +177,15 @@ export class RoomUseCases {
       updatedAt: now,
     };
 
-    return ok(
-      await this.repository.saveRoom({
-        ...room,
-        vehicles: room.vehicles.map((v) => (v.id === vehicleId ? updated : v)),
-        updatedAt: now,
-      }),
-    );
+    const nextRoom = {
+      ...room,
+      vehicles: room.vehicles.map((v) => (v.id === vehicleId ? updated : v)),
+      updatedAt: now,
+    };
+    const integrity = validateRoomAssignments(nextRoom);
+    if (!integrity.ok) return integrity;
+
+    return ok(await this.repository.saveRoom(nextRoom));
   }
 
   async deleteVehicle(vehicleId: string): Promise<Result<Room>> {
@@ -245,13 +248,6 @@ export class RoomUseCases {
     const existing = findChild(room, childId);
     if (!existing) return err("CHILD_NOT_FOUND", "Child was not found.");
 
-    if (childAssignmentCount(room, childId) > 0) {
-      return err(
-        "CHILD_HAS_ASSIGNMENTS",
-        "Move this child back to the queue before editing.",
-      );
-    }
-
     const input = validateChildUpdate(request, existing, enabledDirections(room));
     if (!input.ok) return input;
 
@@ -264,13 +260,15 @@ export class RoomUseCases {
       updatedAt: now,
     };
 
-    return ok(
-      await this.repository.saveRoom({
-        ...room,
-        children: room.children.map((c) => (c.id === childId ? updated : c)),
-        updatedAt: now,
-      }),
-    );
+    const nextRoom = {
+      ...room,
+      children: room.children.map((c) => (c.id === childId ? updated : c)),
+      updatedAt: now,
+    };
+    const integrity = validateRoomAssignments(nextRoom);
+    if (!integrity.ok) return integrity;
+
+    return ok(await this.repository.saveRoom(nextRoom));
   }
 
   async deleteChild(childId: string): Promise<Result<Room>> {
@@ -299,18 +297,12 @@ export class RoomUseCases {
     const candidate = validateAssignment(room, request);
     if (!candidate.ok) return candidate;
 
-    const vehicle = findVehicle(room, request.vehicleId)!;
-    const seatIndex = nextFreeSeatIndex(room, vehicle, request.direction);
-    if (seatIndex === undefined) {
-      return err("SEAT_ALREADY_ASSIGNED", "This vehicle has no free seat for that direction.");
-    }
-
     const now = this.nowIso();
     const assignment: Assignment = {
       id: this.ids(),
       childId: candidate.value.childId,
       vehicleId: candidate.value.vehicleId,
-      seatIndex,
+      seatIndex: candidate.value.seatIndex,
       direction: candidate.value.direction,
       createdAt: now,
     };
@@ -339,5 +331,53 @@ export class RoomUseCases {
 
   private nowIso(): string {
     return this.clock.now().toISOString();
+  }
+
+  private applyReturnTripSetup(
+    nextRoom: Room,
+    previousRoom: Room,
+    requestedSetup: UpdateSettingsRequest["returnTripSetup"],
+  ): Result<Room> {
+    const inboundWasAdded = !previousRoom.settings.inbound.enabled && nextRoom.settings.inbound.enabled;
+    if (!inboundWasAdded) return ok(nextRoom);
+
+    const setup = requestedSetup ?? "mirror-seats";
+    if (setup === "empty") return ok(nextRoom);
+
+    const addInbound = (directions: Direction[]) =>
+      directions.includes("inbound") ? directions : [...directions, "inbound" as const];
+    const vehicles = nextRoom.vehicles.map((vehicle) =>
+      vehicle.directions.includes("outbound")
+        ? { ...vehicle, directions: addInbound(vehicle.directions), updatedAt: nextRoom.updatedAt }
+        : vehicle,
+    );
+    const children = nextRoom.children.map((child) =>
+      child.directions.includes("outbound")
+        ? { ...child, directions: addInbound(child.directions), updatedAt: nextRoom.updatedAt }
+        : child,
+    );
+
+    if (setup === "same-participants") {
+      return ok({ ...nextRoom, vehicles, children });
+    }
+
+    const outboundAssignments = nextRoom.assignments.filter((assignment) => assignment.direction === "outbound");
+    const mirroredAssignments: Assignment[] = outboundAssignments.map((assignment) => ({
+      ...assignment,
+      id: this.ids(),
+      direction: "inbound",
+      createdAt: nextRoom.updatedAt,
+    }));
+
+    if (nextRoom.assignments.length + mirroredAssignments.length > ROOM_LIMITS.assignments) {
+      return err("LIMIT_EXCEEDED", "This room has reached the assignment limit.");
+    }
+
+    return ok({
+      ...nextRoom,
+      vehicles,
+      children,
+      assignments: [...nextRoom.assignments, ...mirroredAssignments],
+    });
   }
 }

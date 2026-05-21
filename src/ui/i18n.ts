@@ -30,8 +30,8 @@ const en = {
   mapLinkOpen: "Open in Google Maps",
   outbound: "Outbound",
   inbound: "Inbound",
-  outboundLabel: "Outbound",
-  inboundLabel: "Inbound",
+  outboundLabel: "There",
+  inboundLabel: "Home",
   enableOutbound: "Plan the trip there",
   enableInbound: "Plan the trip home",
   time: "Time",
@@ -48,8 +48,19 @@ const en = {
   copyLink: "Copy link",
   codeCopied: "Code copied",
   linkCopied: "Link copied",
+  codeLabel: "Code",
   expires: "Removed from app on",
   refresh: "Refresh",
+  tripDetails: "Details",
+  tripDetailsTitle: "Trip details",
+  tripDirections: "Trips",
+  roomCodeEditNote: "Anyone with this code can view and edit this room.",
+  returnTripAddedTitle: "Home trip added",
+  returnTripAddedBody: "How should Home start?",
+  returnSetupMirrorSeats: "Use the same cars, children, and seats",
+  returnSetupSameParticipants: "Use the same cars and children, but leave seats open",
+  returnSetupEmpty: "Start Home empty",
+  saveDetails: "Save details",
 
   /* Overview */
   overviewHeading: "Overview",
@@ -58,10 +69,35 @@ const en = {
   driversHeading: "Cars and riders",
   driversEmpty: "No cars yet. Add one with the + button.",
   noCompatibleDriver: "No compatible driver for this direction yet.",
+  boardEyebrow: "Carpool board",
+  boardLabel: "Carpool board",
+  boardDirectionTabs: "Trips",
+  boardWaitingForSeat: "Waiting for a seat",
+  boardWaitingCount: "{count} waiting",
+  boardAllSeated: "All seated",
+  boardOpenSeats: "{count} open seats",
+  boardNoCarsTitle: "No cars yet",
+  boardNoCarsBody: "Add your car to create the first seats for this trip.",
+  boardAddYourCar: "Add your car",
+  boardAddChildInstead: "Add a child instead",
+  boardNoWaitingChildren: "No children are waiting for this trip.",
+  boardCar: "Car",
+  boardCarNotServing: "{driver}'s car is not doing {direction}. Tap to edit.",
+  boardSeatWaitingChild: "Seat waiting child",
+  boardNoExtras: "No spare child seats listed",
+  boardExtras: "Extras",
+  boardSelectedChild: "{child} selected",
+  boardSelectChildFirst: "Select a child from the waiting queue first.",
+  boardTapSeat: "Tap an available seat to place them.",
+  boardCancelSelection: "Cancel selection",
+  boardSeatUnavailable: "That seat does not work for this child.",
+  boardSeatOccupiedTitle: "{child}'s seat",
+  boardSeatOccupiedMeta: "{direction} with {driver}, seat {seat}",
 
   /* + sheet */
   addVehicle: "Add a car",
   addChild: "Add a child to the queue",
+  addChildShort: "Child",
   cancel: "Cancel",
 
   /* Vehicle wizard */
@@ -75,6 +111,8 @@ const en = {
   driverNameHint: "Use a first name or nickname.",
   seatCount: "Number of seats",
   seatCountHint: "Not including the driver's seat. Maximum 9.",
+  seatCountDecrease: "Remove one passenger seat",
+  seatCountIncrease: "Add one passenger seat",
   reserveSeatHint: "Tap a seat to reserve it for one of your own children. Tap again to clear.",
   reservedRiderName: "Rider name",
   pickDirectionsVehicle: "Which trips can this car serve?",
@@ -100,13 +138,6 @@ const en = {
   borrowFrontFacing: "Needs to borrow a front-facing seat",
   saveChild: "Add to queue",
 
-  /* Allocate */
-  allocateTitle: "Find a ride",
-  allocateForDirection: "Pick a driver for {direction}",
-  allocateNoCandidates: "No compatible driver for {direction} yet. Add a car or adjust borrow needs.",
-  allocateConfirm: "Confirm",
-  allocateSameDriverInbound: "Use {driver} for the inbound trip too",
-  allocateSameDriverOutbound: "Use {driver} for the outbound trip too",
   back: "Back",
   next: "Next",
 
@@ -114,8 +145,8 @@ const en = {
   driverEditCta: "Edit",
   driverDeleteCta: "Delete car",
   driverDeleteConfirm: "Delete {driver}? Reserved children will move to the queue.",
-  driverHasAssignments: "Move riders to the queue before editing.",
   childEditCta: "Edit",
+  childDeleteCta: "Remove",
   childMoveToQueueCta: "Move to queue",
 
   /* Borrow / lending pills */
@@ -128,6 +159,9 @@ const en = {
 
   /* Errors */
   errorTitle: "Something needs attention",
+  editWouldBreakTrips: "That edit would remove a trip that already has seated riders. Move those riders to the queue first.",
+  editWouldBreakEquipment: "That edit would remove child-seat equipment a seated rider needs. Move that rider to the queue first.",
+  editWouldBreakSeats: "That edit would break an existing seat assignment. Move riders to the queue first.",
   unexpectedError: "Unexpected error. Try again in a moment.",
 } as const;
 
@@ -162,8 +196,8 @@ const sv: Translation = {
   mapLinkOpen: "Öppna i Google Maps",
   outbound: "Utresa",
   inbound: "Hemresa",
-  outboundLabel: "Utresa",
-  inboundLabel: "Hemresa",
+  outboundLabel: "Dit",
+  inboundLabel: "Hem",
   enableOutbound: "Planera resan dit",
   enableInbound: "Planera resan hem",
   time: "Tid",
@@ -179,8 +213,19 @@ const sv: Translation = {
   copyLink: "Kopiera länk",
   codeCopied: "Kod kopierad",
   linkCopied: "Länk kopierad",
+  codeLabel: "Kod",
   expires: "Tas bort från appen den",
   refresh: "Uppdatera",
+  tripDetails: "Detaljer",
+  tripDetailsTitle: "Resedetaljer",
+  tripDirections: "Resor",
+  roomCodeEditNote: "Alla med koden kan se och redigera rummet.",
+  returnTripAddedTitle: "Hemresa tillagd",
+  returnTripAddedBody: "Hur ska Hem börja?",
+  returnSetupMirrorSeats: "Använd samma bilar, barn och platser",
+  returnSetupSameParticipants: "Använd samma bilar och barn, men lämna platserna öppna",
+  returnSetupEmpty: "Börja Hem tom",
+  saveDetails: "Spara detaljer",
 
   overviewHeading: "Översikt",
   queueHeading: "Barn som väntar på skjuts",
@@ -188,9 +233,34 @@ const sv: Translation = {
   driversHeading: "Bilar och passagerare",
   driversEmpty: "Inga bilar än. Lägg till med +-knappen.",
   noCompatibleDriver: "Ingen passande förare ännu.",
+  boardEyebrow: "Samåkningskarta",
+  boardLabel: "Samåkningskarta",
+  boardDirectionTabs: "Resor",
+  boardWaitingForSeat: "Väntar på plats",
+  boardWaitingCount: "{count} väntar",
+  boardAllSeated: "Alla har plats",
+  boardOpenSeats: "{count} lediga platser",
+  boardNoCarsTitle: "Inga bilar än",
+  boardNoCarsBody: "Lägg till din bil för att skapa de första platserna för resan.",
+  boardAddYourCar: "Lägg till din bil",
+  boardAddChildInstead: "Lägg till ett barn istället",
+  boardNoWaitingChildren: "Inga barn väntar på plats för den här resan.",
+  boardCar: "Bil",
+  boardCarNotServing: "{driver}s bil kör inte {direction}. Tryck för att redigera.",
+  boardSeatWaitingChild: "Placera väntande barn",
+  boardNoExtras: "Inga extra barnstolar angivna",
+  boardExtras: "Extra",
+  boardSelectedChild: "{child} vald",
+  boardSelectChildFirst: "Välj först ett barn från kön.",
+  boardTapSeat: "Tryck på en ledig plats för att placera barnet.",
+  boardCancelSelection: "Avbryt val",
+  boardSeatUnavailable: "Den platsen fungerar inte för det här barnet.",
+  boardSeatOccupiedTitle: "{child}s plats",
+  boardSeatOccupiedMeta: "{direction} med {driver}, plats {seat}",
 
   addVehicle: "Lägg till en bil",
   addChild: "Lägg till ett barn i kön",
+  addChildShort: "Barn",
   cancel: "Avbryt",
 
   vehicleWizardTitle: "Lägg till en bil",
@@ -203,6 +273,8 @@ const sv: Translation = {
   driverNameHint: "Använd ett förnamn eller smeknamn.",
   seatCount: "Antal platser",
   seatCountHint: "Räkna inte med förarens egen plats. Max 9.",
+  seatCountDecrease: "Ta bort en passagerarplats",
+  seatCountIncrease: "Lägg till en passagerarplats",
   reserveSeatHint: "Tryck på en plats för att reservera den åt ett av dina egna barn. Tryck igen för att rensa.",
   reservedRiderName: "Passagerarens namn",
   pickDirectionsVehicle: "Vilka resor kan bilen köra?",
@@ -227,20 +299,14 @@ const sv: Translation = {
   borrowFrontFacing: "Behöver låna framåtvänd stol",
   saveChild: "Lägg till i kön",
 
-  allocateTitle: "Hitta en skjuts",
-  allocateForDirection: "Välj förare för {direction}",
-  allocateNoCandidates: "Ingen passande förare för {direction}. Lägg till en bil eller justera lånebehov.",
-  allocateConfirm: "Bekräfta",
-  allocateSameDriverInbound: "Använd {driver} även för hemresan",
-  allocateSameDriverOutbound: "Använd {driver} även för utresan",
   back: "Tillbaka",
   next: "Nästa",
 
   driverEditCta: "Redigera",
   driverDeleteCta: "Ta bort bil",
   driverDeleteConfirm: "Ta bort {driver}? Reserverade barn flyttas till kön.",
-  driverHasAssignments: "Flytta passagerare till kön innan du redigerar.",
   childEditCta: "Redigera",
+  childDeleteCta: "Ta bort",
   childMoveToQueueCta: "Flytta till kön",
 
   needsBooster: "Bälteskudde",
@@ -250,6 +316,9 @@ const sv: Translation = {
   directionPlanned: "Planerad",
 
   errorTitle: "Något behöver åtgärdas",
+  editWouldBreakTrips: "Den ändringen skulle ta bort en resa som redan har placerade passagerare. Flytta dem till kön först.",
+  editWouldBreakEquipment: "Den ändringen skulle ta bort utrustning som en placerad passagerare behöver. Flytta passageraren till kön först.",
+  editWouldBreakSeats: "Den ändringen skulle bryta en befintlig platsplacering. Flytta passagerare till kön först.",
   unexpectedError: "Oväntat fel. Försök igen om en stund.",
 };
 
@@ -263,8 +332,4 @@ export function getInitialLanguage(): Language {
 
 export function saveLanguage(language: Language): void {
   localStorage.setItem("toddler-carpool-language", language);
-}
-
-export function fillTemplate(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? `{${key}}`);
 }
