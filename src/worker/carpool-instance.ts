@@ -1,6 +1,14 @@
 import { DurableObject } from "cloudflare:workers";
 import { RoomUseCases, type UseCaseClock } from "../application/use-cases";
-import type { AssignmentRequest, CreateRoomRequest, FamilyRequest, UpdateSettingsRequest } from "../application/dto";
+import type {
+  AssignChildRequest,
+  CreateChildRequest,
+  CreateRoomRequest,
+  CreateVehicleRequest,
+  UpdateChildRequest,
+  UpdateSettingsRequest,
+  UpdateVehicleRequest,
+} from "../application/dto";
 import { createCryptoId } from "../domain/id";
 import type { Result } from "../domain/result";
 import type { Room } from "../domain/types";
@@ -21,8 +29,10 @@ export class CarpoolInstance extends DurableObject<CarpoolInstanceEnv> {
   constructor(ctx: DurableObjectState, env: CarpoolInstanceEnv) {
     super(ctx, env);
     const roomCode = this.ctx.id.name ?? "UNKNOWN";
-    this.repository = new DurableObjectRoomRepository(this.ctx.storage.sql, roomCode, (timestamp) =>
-      this.ctx.storage.setAlarm(timestamp),
+    this.repository = new DurableObjectRoomRepository(
+      this.ctx.storage.sql,
+      roomCode,
+      (timestamp) => this.ctx.storage.setAlarm(timestamp),
     );
     this.useCases = new RoomUseCases(this.repository, createCryptoId, new SystemClock());
     this.ctx.blockConcurrencyWhile(async () => {
@@ -42,24 +52,36 @@ export class CarpoolInstance extends DurableObject<CarpoolInstanceEnv> {
     return this.useCases.updateSettings(request);
   }
 
-  async addFamily(request: FamilyRequest): Promise<Result<Room>> {
-    return this.useCases.addFamily(request);
+  async createVehicle(request: CreateVehicleRequest): Promise<Result<Room>> {
+    return this.useCases.createVehicle(request);
   }
 
-  async updateFamily(familyId: string, request: FamilyRequest): Promise<Result<Room>> {
-    return this.useCases.updateFamily(familyId, request);
+  async updateVehicle(vehicleId: string, request: UpdateVehicleRequest): Promise<Result<Room>> {
+    return this.useCases.updateVehicle(vehicleId, request);
   }
 
-  async deleteFamily(familyId: string): Promise<Result<Room>> {
-    return this.useCases.deleteFamily(familyId);
+  async deleteVehicle(vehicleId: string): Promise<Result<Room>> {
+    return this.useCases.deleteVehicle(vehicleId);
   }
 
-  async assignSeat(request: AssignmentRequest): Promise<Result<Room>> {
-    return this.useCases.assignSeat(request);
+  async createChild(request: CreateChildRequest): Promise<Result<Room>> {
+    return this.useCases.createChild(request);
   }
 
-  async deleteAssignment(assignmentId: string): Promise<Result<Room>> {
-    return this.useCases.deleteAssignment(assignmentId);
+  async updateChild(childId: string, request: UpdateChildRequest): Promise<Result<Room>> {
+    return this.useCases.updateChild(childId, request);
+  }
+
+  async deleteChild(childId: string): Promise<Result<Room>> {
+    return this.useCases.deleteChild(childId);
+  }
+
+  async assignChild(request: AssignChildRequest): Promise<Result<Room>> {
+    return this.useCases.assignChild(request);
+  }
+
+  async unassignChild(assignmentId: string): Promise<Result<Room>> {
+    return this.useCases.unassignChild(assignmentId);
   }
 
   async alarm(): Promise<void> {

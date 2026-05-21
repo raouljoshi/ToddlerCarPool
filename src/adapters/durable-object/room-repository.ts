@@ -6,6 +6,10 @@ interface RoomRow extends Record<string, SqlStorageValue> {
   data: string;
 }
 
+// v2 schema: row stored under id='room_v2' in the room_state table.
+// Old v1 rows (id='room') are ignored — there is no production data per ADR-0002.
+const ROW_ID = "room_v2";
+
 export class DurableObjectRoomRepository implements RoomRepository {
   constructor(
     private readonly sql: DurableObjectStorage["sql"],
@@ -34,7 +38,8 @@ export class DurableObjectRoomRepository implements RoomRepository {
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
       updatedAt: now.toISOString(),
-      families: [],
+      vehicles: [],
+      children: [],
       assignments: [],
     };
     this.writeRoom(room);
@@ -56,7 +61,9 @@ export class DurableObjectRoomRepository implements RoomRepository {
   }
 
   private readRoom(): Room | undefined {
-    const row = this.sql.exec<RoomRow>("SELECT data FROM room_state WHERE id = 'room'").toArray()[0];
+    const row = this.sql
+      .exec<RoomRow>("SELECT data FROM room_state WHERE id = ?", ROW_ID)
+      .toArray()[0];
     if (!row) return undefined;
     return JSON.parse(row.data) as Room;
   }
@@ -65,9 +72,10 @@ export class DurableObjectRoomRepository implements RoomRepository {
     this.sql.exec(
       `
         INSERT INTO room_state (id, data, updated_at)
-        VALUES ('room', ?, ?)
+        VALUES (?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
       `,
+      ROW_ID,
       JSON.stringify(room),
       room.updatedAt,
     );

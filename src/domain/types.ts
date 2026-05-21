@@ -1,19 +1,60 @@
 export type Direction = "outbound" | "inbound";
 
-export type SeatType = "regular" | "booster" | "front-facing" | "rear-facing";
+export type AccessoryType = "booster" | "rearFacing" | "frontFacing";
 
 export type AllocationStatus = "unallocated" | "partially-allocated" | "fully-allocated";
+
+export type TimeReference = "departure" | "arrival";
+
+export interface DirectionMeta {
+  enabled: boolean;
+  time?: string;
+  timeReference?: TimeReference;
+  info?: string;
+}
 
 export interface RoomSettings {
   label: string;
   staticInfo?: string;
   mapLink?: string;
-  outboundEnabled: boolean;
-  outboundLabel: string;
-  outboundInfo?: string;
-  inboundEnabled: boolean;
-  inboundLabel: string;
-  inboundInfo?: string;
+  outbound: DirectionMeta;
+  inbound: DirectionMeta;
+}
+
+export interface BorrowFlags {
+  booster: boolean;
+  rearFacing: boolean;
+  frontFacing: boolean;
+}
+
+export interface Vehicle {
+  id: string;
+  driverName: string;
+  seatCount: number;
+  directions: Direction[];
+  lendsBooster: boolean;
+  lendsRearFacing: boolean;
+  lendsFrontFacing: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Child {
+  id: string;
+  name: string;
+  directions: Direction[];
+  borrows: BorrowFlags;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Assignment {
+  id: string;
+  childId: string;
+  vehicleId: string;
+  seatIndex: number;
+  direction: Direction;
+  createdAt: string;
 }
 
 export interface Room {
@@ -21,76 +62,42 @@ export interface Room {
   settings: RoomSettings;
   createdAt: string;
   expiresAt: string;
-  families: FamilyEntry[];
+  updatedAt: string;
+  vehicles: Vehicle[];
+  children: Child[];
   assignments: Assignment[];
-  updatedAt: string;
-}
-
-export interface FamilyEntry {
-  id: string;
-  displayLabel: string;
-  children: ChildNeed[];
-  seatOffers: SeatOffer[];
-  notes: TripNotes;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TripNotes {
-  outbound?: string;
-  inbound?: string;
-}
-
-export interface ChildNeed {
-  id: string;
-  label: string;
-  directions: Direction[];
-  seatType: SeatType;
-  note?: string;
-}
-
-export interface SeatOffer {
-  id: string;
-  label: string;
-  directions: Direction[];
-  seatType: SeatType;
-  note?: string;
-}
-
-export interface Assignment {
-  id: string;
-  childId: string;
-  seatId: string;
-  direction: Direction;
-  createdAt: string;
-}
-
-export interface AssignmentCandidate {
-  childId: string;
-  seatId: string;
-  direction: Direction;
 }
 
 export interface ChildAllocation {
-  child: ChildNeed;
-  family: FamilyEntry;
+  child: Child;
   status: AllocationStatus;
   missingDirections: Direction[];
   assignments: Assignment[];
 }
 
-export interface SeatAvailability {
-  seat: SeatOffer;
-  family: FamilyEntry;
-  direction: Direction;
-  assignment?: Assignment;
+export type SeatSlotState =
+  | { kind: "empty" }
+  | { kind: "assigned"; childId: string; assignmentId: string };
+
+export interface SeatSlot {
+  index: number;
+  state: SeatSlotState;
 }
 
 export const ROOM_LIMITS = {
-  families: 40,
+  vehicles: 30,
   children: 100,
-  seats: 30,
   assignments: 200,
+  seatsPerVehicle: 9,
 } as const;
 
 export const ROOM_TTL_DAYS = 30;
+
+export const ACCESSORY_TYPES: AccessoryType[] = ["booster", "rearFacing", "frontFacing"];
+export const DIRECTIONS: Direction[] = ["outbound", "inbound"];
+
+export const EMPTY_BORROWS: BorrowFlags = {
+  booster: false,
+  rearFacing: false,
+  frontFacing: false,
+};

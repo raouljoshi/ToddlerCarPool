@@ -1,4 +1,13 @@
-import type { AssignmentRequest, CreateRoomRequest, FamilyRequest, RoomDto, UpdateSettingsRequest } from "../application/dto";
+import type {
+  AssignChildRequest,
+  CreateChildRequest,
+  CreateRoomRequest,
+  CreateVehicleRequest,
+  RoomDto,
+  UpdateChildRequest,
+  UpdateSettingsRequest,
+  UpdateVehicleRequest,
+} from "../application/dto";
 
 interface ApiSuccess<T> {
   data: T;
@@ -33,27 +42,74 @@ export async function getRoom(code: string): Promise<RoomDto> {
 }
 
 export async function updateSettings(code: string, request: UpdateSettingsRequest): Promise<RoomDto> {
-  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/settings`, { method: "PUT", body: request });
-}
-
-export async function addFamily(code: string, request: FamilyRequest): Promise<RoomDto> {
-  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/families`, { method: "POST", body: request });
-}
-
-export async function deleteFamily(code: string, familyId: string): Promise<RoomDto> {
-  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/families/${encodeURIComponent(familyId)}`, {
-    method: "DELETE",
+  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/settings`, {
+    method: "PUT",
+    body: request,
   });
 }
 
-export async function assignSeat(code: string, request: AssignmentRequest): Promise<RoomDto> {
-  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/assignments`, { method: "POST", body: request });
+export async function createVehicle(code: string, request: CreateVehicleRequest): Promise<RoomDto> {
+  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/vehicles`, {
+    method: "POST",
+    body: request,
+  });
 }
 
-export async function deleteAssignment(code: string, assignmentId: string): Promise<RoomDto> {
-  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/assignments/${encodeURIComponent(assignmentId)}`, {
-    method: "DELETE",
+export async function updateVehicle(
+  code: string,
+  vehicleId: string,
+  request: UpdateVehicleRequest,
+): Promise<RoomDto> {
+  return send<RoomDto>(
+    `/api/rooms/${encodeURIComponent(code)}/vehicles/${encodeURIComponent(vehicleId)}`,
+    { method: "PUT", body: request },
+  );
+}
+
+export async function deleteVehicle(code: string, vehicleId: string): Promise<RoomDto> {
+  return send<RoomDto>(
+    `/api/rooms/${encodeURIComponent(code)}/vehicles/${encodeURIComponent(vehicleId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function createChild(code: string, request: CreateChildRequest): Promise<RoomDto> {
+  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/children`, {
+    method: "POST",
+    body: request,
   });
+}
+
+export async function updateChild(
+  code: string,
+  childId: string,
+  request: UpdateChildRequest,
+): Promise<RoomDto> {
+  return send<RoomDto>(
+    `/api/rooms/${encodeURIComponent(code)}/children/${encodeURIComponent(childId)}`,
+    { method: "PUT", body: request },
+  );
+}
+
+export async function deleteChild(code: string, childId: string): Promise<RoomDto> {
+  return send<RoomDto>(
+    `/api/rooms/${encodeURIComponent(code)}/children/${encodeURIComponent(childId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function assignChild(code: string, request: AssignChildRequest): Promise<RoomDto> {
+  return send<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/assignments`, {
+    method: "POST",
+    body: request,
+  });
+}
+
+export async function unassignChild(code: string, assignmentId: string): Promise<RoomDto> {
+  return send<RoomDto>(
+    `/api/rooms/${encodeURIComponent(code)}/assignments/${encodeURIComponent(assignmentId)}`,
+    { method: "DELETE" },
+  );
 }
 
 async function send<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {

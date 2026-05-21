@@ -1,34 +1,48 @@
-import type { Direction, Room, RoomSettings, SeatType, TripNotes } from "../domain/types";
+import type { BorrowFlags, Direction, Room, RoomSettings } from "../domain/types";
 
 export type RoomDto = Room;
 
-export interface CreateRoomRequest {
-  label?: string;
-  outboundLabel?: string;
-  inboundLabel?: string;
-}
+export type CreateRoomRequest = Partial<RoomSettings>;
 
 export type UpdateSettingsRequest = Partial<RoomSettings>;
 
-export interface FamilyRequest {
-  displayLabel: string;
-  children: Array<{
-    label: string;
-    directions: Direction[];
-    seatType: SeatType;
-    note?: string;
-  }>;
-  seatOffers: Array<{
-    label: string;
-    directions: Direction[];
-    seatType: SeatType;
-    note?: string;
-  }>;
-  notes?: TripNotes;
+export interface ReservedRiderRequest {
+  seatIndex: number;
+  name: string;
 }
 
-export interface AssignmentRequest {
+export interface CreateVehicleRequest {
+  driverName: string;
+  seatCount: number;
+  directions: Direction[];
+  lendsBooster?: boolean;
+  lendsRearFacing?: boolean;
+  lendsFrontFacing?: boolean;
+  reservedRiders?: ReservedRiderRequest[];
+}
+
+export interface UpdateVehicleRequest {
+  driverName?: string;
+  directions?: Direction[];
+  lendsBooster?: boolean;
+  lendsRearFacing?: boolean;
+  lendsFrontFacing?: boolean;
+}
+
+export interface CreateChildRequest {
+  name: string;
+  directions: Direction[];
+  borrows?: Partial<BorrowFlags>;
+}
+
+export interface UpdateChildRequest {
+  name?: string;
+  directions?: Direction[];
+  borrows?: Partial<BorrowFlags>;
+}
+
+export interface AssignChildRequest {
   childId: string;
-  seatId: string;
+  vehicleId: string;
   direction: Direction;
 }
