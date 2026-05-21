@@ -425,6 +425,7 @@ p {
   font-size: 0.82rem;
   font-weight: 600;
   min-height: 36px;
+  white-space: nowrap;
 }
 
 .stepper li .num {

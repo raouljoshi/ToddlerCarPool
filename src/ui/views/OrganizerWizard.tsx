@@ -122,7 +122,7 @@ export function OrganizerWizard({ t, loading, onCancel, onSubmit }: OrganizerWiz
               />
             </label>
             <label>
-              {t.eventInfo}
+              {t.eventInfo} <span className="muted" style={{ fontSize: "0.85rem", fontWeight: 400 }}>(optional)</span>
               <textarea
                 value={form.staticInfo}
                 onChange={(e) => field("staticInfo", e.target.value)}
@@ -130,7 +130,7 @@ export function OrganizerWizard({ t, loading, onCancel, onSubmit }: OrganizerWiz
               />
             </label>
             <label>
-              {t.mapLink}
+              {t.mapLink} <span className="muted" style={{ fontSize: "0.85rem", fontWeight: 400 }}>(optional)</span>
               <input
                 type="url"
                 value={form.mapLink}
@@ -348,7 +348,7 @@ function DirectionSummary({
             </span>
           )}
           {info && <span>{info}</span>}
-          {!time && !info && <span>{enabled ? "—" : ""}</span>}
+          {!time && !info && <span>{t.directionPlanned}</span>}
         </div>
       ) : (
         <span className="muted" style={{ fontSize: "0.92rem" }}>Not planned</span>

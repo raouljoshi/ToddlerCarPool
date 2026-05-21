@@ -5,7 +5,7 @@ const en = {
   brandTagline: "A calm shared room for one trip",
   introHeadline: "Plan a toddler carpool together",
   introBody:
-    "Create a short-lived room and share the code. Each parent adds their car or their child. Anyone can match a child to an available seat. Nothing is saved beyond this room — the room itself is removed from the live app 30 days after it is created.",
+    "Create a room and share the code. Parents add their car or child, then anyone can match children to available seats.",
   privacyNudge: "Use nicknames or display labels. Coordinate phone, address, and contact details outside the app.",
   retentionNote: "Rooms are removed from the live app 30 days after they are created.",
 
@@ -23,7 +23,7 @@ const en = {
   setupStepEvent: "Event",
   setupStepOutbound: "Outbound",
   setupStepInbound: "Inbound",
-  setupStepReview: "Share",
+  setupStepReview: "Review",
   eventName: "Event name",
   eventInfo: "Information everyone should see",
   mapLink: "Google Maps link",
@@ -32,8 +32,8 @@ const en = {
   inbound: "Inbound",
   outboundLabel: "Outbound",
   inboundLabel: "Inbound",
-  enableOutbound: "Plan an outbound trip",
-  enableInbound: "Plan an inbound trip",
+  enableOutbound: "Plan the trip there",
+  enableInbound: "Plan the trip home",
   time: "Time",
   timeReference: "Time refers to",
   timeReferenceDeparture: "Departure",
@@ -69,7 +69,7 @@ const en = {
   vehicleStepDriver: "Driver",
   vehicleStepSeats: "Seats",
   vehicleStepDirections: "Trips",
-  vehicleStepLending: "Lending",
+  vehicleStepLending: "Extras",
   vehicleStepReview: "Review",
   driverName: "Driver name",
   driverNameHint: "Use a first name or nickname.",
@@ -83,7 +83,7 @@ const en = {
   lendsBooster: "Spare booster seat",
   lendsRearFacing: "Spare rear-facing seat",
   lendsFrontFacing: "Spare front-facing seat",
-  saveVehicle: "Add to availability",
+  saveVehicle: "Add this car",
 
   /* Child wizard */
   childWizardTitle: "Add a child",
@@ -123,6 +123,9 @@ const en = {
   needsRearFacing: "Rear-facing",
   needsFrontFacing: "Front-facing",
 
+  /* Direction review */
+  directionPlanned: "Planned",
+
   /* Errors */
   errorTitle: "Something needs attention",
   unexpectedError: "Unexpected error. Try again in a moment.",
@@ -136,7 +139,7 @@ const sv: Translation = {
   brandTagline: "Ett lugnt delat rum för en resa",
   introHeadline: "Planera en småbarnssamåkning tillsammans",
   introBody:
-    "Skapa ett kortlivat rum och dela koden. Varje förälder lägger till sin bil eller sitt barn. Vem som helst kan matcha ett barn till en ledig plats. Inget sparas utöver detta rum — själva rummet tas bort från appen 30 dagar efter att det skapades.",
+    "Skapa ett rum och dela koden. Föräldrar lägger till sin bil eller sitt barn, sen kan vem som helst matcha barn till lediga platser.",
   privacyNudge: "Använd smeknamn eller visningsnamn. Samordna telefon, adress och kontaktuppgifter utanför appen.",
   retentionNote: "Rum tas bort från appen 30 dagar efter att de skapats.",
 
@@ -152,7 +155,7 @@ const sv: Translation = {
   setupStepEvent: "Händelse",
   setupStepOutbound: "Utresa",
   setupStepInbound: "Hemresa",
-  setupStepReview: "Dela",
+  setupStepReview: "Granska",
   eventName: "Händelsens namn",
   eventInfo: "Information som alla ska se",
   mapLink: "Google Maps-länk",
@@ -161,8 +164,8 @@ const sv: Translation = {
   inbound: "Hemresa",
   outboundLabel: "Utresa",
   inboundLabel: "Hemresa",
-  enableOutbound: "Planera utresa",
-  enableInbound: "Planera hemresa",
+  enableOutbound: "Planera resan dit",
+  enableInbound: "Planera resan hem",
   time: "Tid",
   timeReference: "Tiden gäller",
   timeReferenceDeparture: "Avresa",
@@ -194,7 +197,7 @@ const sv: Translation = {
   vehicleStepDriver: "Förare",
   vehicleStepSeats: "Platser",
   vehicleStepDirections: "Resor",
-  vehicleStepLending: "Utlåning",
+  vehicleStepLending: "Utrustning",
   vehicleStepReview: "Granska",
   driverName: "Förarens namn",
   driverNameHint: "Använd ett förnamn eller smeknamn.",
@@ -208,7 +211,7 @@ const sv: Translation = {
   lendsBooster: "Extra bälteskudde",
   lendsRearFacing: "Extra bakåtvänd stol",
   lendsFrontFacing: "Extra framåtvänd stol",
-  saveVehicle: "Lägg till i utbudet",
+  saveVehicle: "Lägg till bilen",
 
   childWizardTitle: "Lägg till ett barn",
   childStepName: "Namn",
@@ -243,6 +246,8 @@ const sv: Translation = {
   needsBooster: "Bälteskudde",
   needsRearFacing: "Bakåtvänd",
   needsFrontFacing: "Framåtvänd",
+
+  directionPlanned: "Planerad",
 
   errorTitle: "Något behöver åtgärdas",
   unexpectedError: "Oväntat fel. Försök igen om en stund.",

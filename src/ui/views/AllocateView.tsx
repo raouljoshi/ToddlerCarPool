@@ -59,13 +59,15 @@ export function AllocateView({
 
   return (
     <section className="panel wizard">
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
         <button type="button" className="ghost" onClick={onBack} aria-label={t.back}>
           ←
         </button>
-        <h2 style={{ margin: 0 }}>{fillTemplate(t.allocateTitle, { child: child.name })}</h2>
+        <div>
+          <h2 style={{ margin: 0 }}>{child.name}</h2>
+          <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>{t.allocateTitle}</p>
+        </div>
       </div>
-      <p className="muted" style={{ fontSize: "0.92rem" }}>{child.name}</p>
 
       {missingDirections.length === 0 ? (
         <p className="empty">{t.queueEmpty}</p>
@@ -85,9 +87,6 @@ export function AllocateView({
               <div key={dir} style={{ display: "grid", gap: "12px" }}>
                 <div className="row">
                   <span className={`dir-pill ${dir}`}>{dirLabel}</span>
-                  <span className="muted" style={{ fontSize: "0.92rem" }}>
-                    {fillTemplate(t.allocateForDirection, { direction: dirLabel })}
-                  </span>
                 </div>
 
                 {sameDriverVehicle && (

@@ -243,48 +243,51 @@ function QueueChildCard({
 }) {
   return (
     <div className="queue-child">
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>{child.name}</strong>
-        <div className="child-meta">
-          {missingDirections.map((d) => (
-            <span key={d} className={`dir-pill ${d}`}>
-              {d === "outbound" ? "→" : "←"}
-            </span>
-          ))}
-          {child.borrows.booster && (
-            <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsBooster}</span>
-          )}
-          {child.borrows.rearFacing && (
-            <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsRearFacing}</span>
-          )}
-          {child.borrows.frontFacing && (
-            <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsFrontFacing}</span>
-          )}
-        </div>
-        {confirmDelete && (
-          <div className="row" style={{ marginTop: "8px" }}>
-            <button type="button" className="danger" onClick={onDeleteConfirm} disabled={loading} style={{ fontSize: "0.85rem" }}>
-              Confirm delete
-            </button>
-            <button type="button" className="ghost" onClick={onDeleteCancel} style={{ fontSize: "0.85rem" }}>
-              {t.cancel}
-            </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>{child.name}</strong>
+          <div className="child-meta">
+            {missingDirections.map((d) => (
+              <span key={d} className={`dir-pill ${d}`}>
+                {d === "outbound" ? t.outboundLabel : t.inboundLabel}
+              </span>
+            ))}
+            {child.borrows.booster && (
+              <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsBooster}</span>
+            )}
+            {child.borrows.rearFacing && (
+              <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsRearFacing}</span>
+            )}
+            {child.borrows.frontFacing && (
+              <span className="muted" style={{ fontSize: "0.78rem" }}>{t.needsFrontFacing}</span>
+            )}
           </div>
-        )}
-      </div>
-      <div className="row">
-        <button type="button" className="secondary" onClick={onEdit} style={{ fontSize: "0.85rem" }}>
-          {t.childEditCta}
-        </button>
-        <button type="button" className="accent" onClick={onAllocate} disabled={loading}>
-          {t.allocateTitle}
-        </button>
+        </div>
         {!confirmDelete && (
-          <button type="button" className="ghost" onClick={onDeleteRequest} aria-label="Delete" style={{ fontSize: "0.85rem", minWidth: "auto", padding: "0 10px" }}>
+          <button type="button" className="ghost" onClick={onDeleteRequest} aria-label="Delete" style={{ fontSize: "0.85rem", minWidth: "auto", padding: "0 10px", flexShrink: 0 }}>
             ✕
           </button>
         )}
       </div>
+      {confirmDelete ? (
+        <div className="row" style={{ marginTop: "8px" }}>
+          <button type="button" className="danger" onClick={onDeleteConfirm} disabled={loading} style={{ fontSize: "0.85rem" }}>
+            {t.driverDeleteCta}
+          </button>
+          <button type="button" className="ghost" onClick={onDeleteCancel} style={{ fontSize: "0.85rem" }}>
+            {t.cancel}
+          </button>
+        </div>
+      ) : (
+        <div className="row" style={{ marginTop: "8px" }}>
+          <button type="button" className="accent" onClick={onAllocate} disabled={loading} style={{ flex: 1 }}>
+            {t.allocateTitle}
+          </button>
+          <button type="button" className="secondary" onClick={onEdit} style={{ fontSize: "0.85rem" }}>
+            {t.childEditCta}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -371,8 +374,6 @@ function DriverGroup({
 
       {confirmDelete && (
         <p className="muted" style={{ fontSize: "0.85rem" }}>
-          {vehicle.driverName.replace("{driver}", vehicle.driverName)}
-          {" "}—{" "}
           {t.driverDeleteConfirm.replace("{driver}", vehicle.driverName)}
         </p>
       )}

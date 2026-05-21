@@ -107,7 +107,7 @@ export function VehicleWizard(props: VehicleWizardProps) {
 
   const seatsForSchematic: SeatDisplayState[] = Array.from({ length: seatCount }, (_, i) => {
     const r = reserved.find((x) => x.seatIndex === i);
-    if (r) return { kind: "reserved", name: r.name || "?" };
+    if (r) return { kind: "reserved", name: r.name };
     return { kind: "empty" };
   });
 
