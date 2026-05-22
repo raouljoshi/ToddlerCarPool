@@ -442,8 +442,20 @@ function LandingView({
 }) {
   return (
     <section className="landing">
-      <HeroCars />
-      <p className="landing-explainer">{t.brandTagline}</p>
+      <div className="landing-lockup">
+        <HeroCars />
+        <h1 className="landing-brand" aria-label={t.appName}>
+          <span>Toddler</span>
+          <span>CarPool</span>
+        </h1>
+        <p className="landing-tagline">{t.brandTagline}</p>
+      </div>
+
+      <div className="landing-explainer">
+        <p>{t.landingUseCase}</p>
+        <p>{t.landingHowItWorks}</p>
+        <p>{t.landingPrivacy}</p>
+      </div>
 
       <form
         className="join-card"

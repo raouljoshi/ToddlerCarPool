@@ -386,9 +386,16 @@ p { margin: 0; line-height: 1.5; }
 .landing {
   display: grid;
   justify-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg) 0;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0 var(--space-lg);
   text-align: center;
+}
+
+.landing-lockup {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  width: 100%;
 }
 
 .hero-cars {
@@ -404,12 +411,45 @@ p { margin: 0; line-height: 1.5; }
   height: auto;
 }
 
+.landing-brand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.04em;
+  margin: 0;
+  color: var(--color-ink-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.7rem, 13vw, 4.7rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.88;
+  text-wrap: balance;
+}
+
+.landing-brand span:last-child {
+  color: var(--color-accent);
+}
+
+.landing-tagline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-pebble);
+  background: var(--color-warm-soft);
+  color: var(--color-outline);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .landing-explainer {
+  display: grid;
+  gap: var(--space-xs);
   max-width: 38ch;
   color: var(--color-ink-muted);
   font-size: 0.98rem;
   font-weight: 560;
-  line-height: 1.48;
+  line-height: 1.42;
 }
 
 .join-card {
