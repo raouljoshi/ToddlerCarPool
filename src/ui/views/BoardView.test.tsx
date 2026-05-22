@@ -105,13 +105,47 @@ function renderBoard(overrides: Partial<ComponentProps<typeof BoardView>> = {}) 
 }
 
 describe("BoardView", () => {
+  it("labels trip times with arrival and departure verbs", () => {
+    const room = buildRoom();
+    room.settings = {
+      ...room.settings,
+      outbound: {
+        enabled: true,
+        time: "08:30",
+        timeReference: "arrival",
+        info: "Use the north gate.",
+      },
+      inbound: { enabled: true, time: "15:15", timeReference: "departure" },
+    };
+
+    renderBoard({ room });
+
+    expect(screen.getByText("Arrive There 08:30")).toBeInTheDocument();
+    expect(screen.getByText("Leave Home 15:15")).toBeInTheDocument();
+    expect(screen.getByText("Use the north gate.")).toBeInTheDocument();
+  });
+
+  it("labels trip times in Swedish", () => {
+    const room = buildRoom();
+    room.settings = {
+      ...room.settings,
+      outbound: { enabled: true, time: "08:30", timeReference: "arrival" },
+      inbound: { enabled: true, time: "15:15", timeReference: "departure" },
+    };
+
+    renderBoard({ t: translations.sv, language: "sv", room });
+
+    expect(screen.getByText("Framme Dit 08:30")).toBeInTheDocument();
+    expect(screen.getByText("Avresa Hem 15:15")).toBeInTheDocument();
+  });
+
   it("selects a waiting child and assigns the exact tapped compatible seat", () => {
     const onAssign = vi.fn();
     renderBoard({ onAssign });
 
     fireEvent.click(screen.getByRole("button", { name: "Sam" }));
 
-    expect(screen.getByText("Tap an available seat to place them.")).toBeInTheDocument();
+    expect(screen.getByText("Tap a green seat.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Seat 2: That seat does not work for this child." })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Seat 2: available" }));

@@ -272,7 +272,7 @@ p { margin: 0; line-height: 1.5; }
 .app-shell {
   width: min(640px, 100%);
   margin: 0 auto;
-  padding: 0 var(--space-md) calc(var(--space-2xl) + var(--space-2xl));
+  padding: 0 var(--space-md) calc(var(--space-2xl) + var(--space-2xl) + var(--tap-hero));
   min-height: 100vh;
 }
 
@@ -708,6 +708,7 @@ p { margin: 0; line-height: 1.5; }
   position: relative;
   width: 100%;
   max-width: 480px;
+  min-width: 0;
   margin: var(--space-sm) auto 0;
   padding: 0 22px 22px;
 }
@@ -927,6 +928,15 @@ p { margin: 0; line-height: 1.5; }
   font-size: 0.9rem;
 }
 
+.board-direction-note {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 .board-map {
   display: inline-flex;
   align-items: center;
@@ -1104,6 +1114,8 @@ p { margin: 0; line-height: 1.5; }
   font-size: 0.76rem;
   font-weight: 650;
   color: var(--color-accent);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .queue-row-actions {
@@ -1117,11 +1129,13 @@ p { margin: 0; line-height: 1.5; }
 .car-board {
   display: grid;
   gap: var(--space-lg);
+  min-width: 0;
 }
 
 .car-card {
   display: grid;
   gap: var(--space-sm);
+  min-width: 0;
   padding: var(--space-md);
   background: var(--color-surface-glass);
   border: 1px solid var(--color-border-soft);
@@ -1399,6 +1413,42 @@ p { margin: 0; line-height: 1.5; }
   background: var(--color-surface-raised);
 }
 
+.trip-timing-panel {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.direction-timing-card {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1.5px solid var(--color-border-soft);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-sunken);
+}
+
+.direction-timing-card.outbound {
+  border-color: color-mix(in srgb, var(--color-outbound) 34%, var(--color-border-soft));
+}
+
+.direction-timing-card.inbound {
+  border-color: color-mix(in srgb, var(--color-inbound) 34%, var(--color-border-soft));
+}
+
+.direction-timing-card.disabled {
+  opacity: 0.58;
+}
+
+.direction-timing-card h3 {
+  font-size: 1rem;
+}
+
+.direction-timing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--space-sm);
+}
+
 .trip-details-sheet {
   display: grid;
   gap: var(--space-md);
@@ -1416,13 +1466,52 @@ p { margin: 0; line-height: 1.5; }
 
 .fab-dock {
   position: fixed;
-  right: var(--space-lg);
+  right: calc(env(safe-area-inset-right, 0px) + var(--space-sm));
   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-lg));
   z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-sm);
+}
+
+@media (max-width: 420px) {
+  .direction-timing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .queue-row {
+    align-items: flex-start;
+  }
+
+  .queue-row-name {
+    align-items: flex-start;
+    padding-top: 5px;
+  }
+
+  .queue-row-actions {
+    padding-top: 1px;
+  }
+
+  .seat-car {
+    padding-inline: 28px;
+  }
+
+  .seat-car.outbound .seat-car-body::before {
+    right: -17px;
+  }
+
+  .seat-car.inbound .seat-car-body::before {
+    left: -17px;
+  }
+
+  .seat-car.outbound .seat-car-body::after {
+    right: -10px;
+  }
+
+  .seat-car.inbound .seat-car-body::after {
+    left: -10px;
+  }
 }
 
 .fab-actions {
