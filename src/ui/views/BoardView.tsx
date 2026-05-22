@@ -1,5 +1,15 @@
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  Car,
+  MapPin,
+  Pencil,
+  Share2,
+  Trash2,
+} from "lucide-react";
+import {
   assignmentsForVehicleDirection,
   enabledDirections,
   getChildAllocations,
@@ -8,9 +18,10 @@ import {
 } from "../../domain/allocation";
 import type { AssignChildRequest } from "../../application/dto";
 import type { ErrorCode } from "../../domain/result";
-import type { Child, Direction, Room, Vehicle } from "../../domain/types";
+import type { Child, Direction, DirectionMeta, Room, Vehicle } from "../../domain/types";
 import type { Language, Translation } from "../i18n";
-import { CarIcon, PeopleWaitingIcon } from "../components/icons";
+import { CarGraphic } from "../components/CarGraphic";
+import { Fab } from "../components/Fab";
 import { SeatSchematic, type SeatDisplayState } from "../components/SeatSchematic";
 import { slotsToDisplayStates } from "../utils/seatUtils";
 
@@ -20,10 +31,8 @@ interface BoardViewProps {
   room: Room;
   justCreated: boolean;
   loading: boolean;
-  onCopyCode: () => void;
   onCopyLink: () => void;
   onOpenDetails: () => void;
-  onRefresh: () => void;
   onAddVehicle: () => void;
   onAddChild: () => void;
   onEditVehicle: (vehicleId: string) => void;
@@ -34,16 +43,24 @@ interface BoardViewProps {
   onAssign: (request: AssignChildRequest) => void;
 }
 
+function formatDate(date: string, language: Language): string {
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString(language === "sv" ? "sv-SE" : "en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export function BoardView({
   t,
   language,
   room,
   justCreated,
   loading,
-  onCopyCode,
   onCopyLink,
   onOpenDetails,
-  onRefresh,
   onAddVehicle,
   onAddChild,
   onEditVehicle,
@@ -79,16 +96,13 @@ export function BoardView({
   const inactiveVehicles = room.vehicles.filter(
     (vehicle) => !vehicle.directions.includes(activeDirection),
   );
-  const openSeatCount = servingVehicles.reduce((sum, vehicle) => {
-    const used = assignmentsForVehicleDirection(room, vehicle.id, activeDirection).length;
-    return sum + Math.max(0, vehicle.seatCount - used);
-  }, 0);
-  const expiryDate = new Date(room.expiresAt).toLocaleDateString(
-    language === "sv" ? "sv-SE" : "en-US",
-  );
 
   function directionLabel(direction: Direction) {
     return direction === "outbound" ? t.outboundLabel : t.inboundLabel;
+  }
+
+  function directionMeta(direction: Direction): DirectionMeta {
+    return direction === "outbound" ? room.settings.outbound : room.settings.inbound;
   }
 
   function waitingCount(direction: Direction) {
@@ -109,11 +123,6 @@ export function BoardView({
     const nextId = selectedChildId === childId ? null : childId;
     setSelectedChildId(nextId);
     setActiveAssignmentId(null);
-    setBoardMessage("");
-  }
-
-  function cancelSelection() {
-    setSelectedChildId(null);
     setBoardMessage("");
   }
 
@@ -154,158 +163,172 @@ export function BoardView({
     onAssign(request);
   }
 
+  const date = room.settings.date;
+  const mapLink = room.settings.mapLink;
+  const staticInfo = room.settings.staticInfo;
+  const timed = directions
+    .map((direction) => ({ direction, meta: directionMeta(direction) }))
+    .filter((entry) => entry.meta.time);
+
   return (
     <>
-      <section className="board-hero">
-        <div className="board-title-row">
-          <div>
-            <p className="eyebrow">{t.boardEyebrow}</p>
-            <h1>{room.settings.label}</h1>
+      <section className="board-head">
+        <div className="board-head-top">
+          <h1>{room.settings.label}</h1>
+          <div className="board-head-actions">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={onCopyLink}
+              aria-label={t.share}
+            >
+              <Share2 size={19} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              onClick={onOpenDetails}
+              aria-label={t.editEvent}
+            >
+              <Pencil size={19} strokeWidth={2.2} aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" className="room-code-pill board-code" onClick={onCopyCode}>
-            {t.codeLabel} {room.code}
-          </button>
         </div>
 
-        <div className="board-share-row">
-          <button type="button" className="accent" onClick={onAddVehicle} disabled={loading}>
-            {t.addVehicle}
-          </button>
-          <button type="button" className="secondary" onClick={onCopyLink}>
-            {t.copyLink}
-          </button>
-          <button type="button" className="secondary" onClick={onOpenDetails}>
-            {t.tripDetails}
-          </button>
-          <button type="button" className="ghost" onClick={onRefresh} disabled={loading}>
-            {t.refresh}
-          </button>
-          <span className="board-expiry">
-            {t.expires} <strong>{expiryDate}</strong>
-          </span>
+        <div className="board-meta">
+          {date && (
+            <span className="board-meta-item">
+              <Calendar size={15} strokeWidth={2.2} aria-hidden="true" />
+              {formatDate(date, language)}
+            </span>
+          )}
+          {timed.map(({ direction, meta }) => (
+            <span key={direction} className={`board-meta-item dir ${direction}`}>
+              {directionLabel(direction)} {meta.time}
+            </span>
+          ))}
         </div>
 
-        {justCreated && <p className="muted">{t.roomCreated}</p>}
+        {staticInfo && <p className="muted board-desc">{staticInfo}</p>}
 
-        {directions.length > 1 && (
-          <div className="direction-tabs" role="tablist" aria-label={t.boardDirectionTabs}>
-            {directions.map((direction) => {
-              const count = waitingCount(direction);
-              return (
-                <button
-                  key={direction}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeDirection === direction}
-                  className={activeDirection === direction ? "active" : ""}
-                  onClick={() => setSelectedDirection(direction)}
-                >
-                  <span>{directionLabel(direction)}</span>
-                  <span className="tab-count">
-                    {count === 0 ? t.boardAllSeated : String(count)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {mapLink && (
+          <a className="board-map" href={mapLink} target="_blank" rel="noreferrer">
+            <MapPin size={16} strokeWidth={2.2} aria-hidden="true" />
+            {t.openInMaps}
+          </a>
         )}
 
-        <div className={`board-summary${selectedChild ? " selecting" : ""}`} aria-live="polite">
-          <strong>
-            {selectedChild
-              ? t.boardSelectedChild.replace("{child}", selectedChild.name)
-              : waitingChildren.length === 0
-              ? t.boardAllSeated
-              : t.boardWaitingCount.replace("{count}", String(waitingChildren.length))}
-          </strong>
-          <span>{selectedChild ? t.boardTapSeat : t.boardOpenSeats.replace("{count}", String(openSeatCount))}</span>
-          {selectedChild && (
-            <button type="button" className="ghost compact-button" onClick={cancelSelection}>
-              {t.boardCancelSelection}
-            </button>
-          )}
-        </div>
-
-        {boardMessage && <p className="board-inline-message" role="status">{boardMessage}</p>}
+        {justCreated && <p className="muted">{t.roomCreated}</p>}
       </section>
 
-      <section className="board-layout" aria-label={t.boardLabel}>
-        <div className="car-board">
-          {servingVehicles.length === 0 ? (
-            <div className="board-empty">
-              <CarIcon className="board-empty-icon" />
-              <h2>{t.boardNoCarsTitle}</h2>
-              <p>{t.boardNoCarsBody}</p>
-              <button type="button" className="accent" onClick={onAddVehicle}>
-                {t.boardAddYourCar}
+      {directions.length > 1 && (
+        <div className="dir-toggle" role="tablist" aria-label={t.boardDirectionTabs}>
+          {directions.map((direction) => {
+            const count = waitingCount(direction);
+            const isActive = activeDirection === direction;
+            return (
+              <button
+                key={direction}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`dir-toggle-btn ${direction}${isActive ? " active" : ""}`}
+                onClick={() => setSelectedDirection(direction)}
+              >
+                <CarGraphic direction={direction} className="dir-toggle-car" />
+                <span className="dir-toggle-label">
+                  {direction === "inbound" && (
+                    <ArrowLeft size={16} strokeWidth={2.6} aria-hidden="true" />
+                  )}
+                  {directionLabel(direction)}
+                  {direction === "outbound" && (
+                    <ArrowRight size={16} strokeWidth={2.6} aria-hidden="true" />
+                  )}
+                </span>
+                <span className="dir-toggle-count">
+                  {count === 0 ? t.boardAllSeated : t.boardWaitingCount.replace("{count}", String(count))}
+                </span>
               </button>
-              <button type="button" className="ghost" onClick={onAddChild}>
-                {t.boardAddChildInstead}
-              </button>
-            </div>
-          ) : (
-            servingVehicles.map((vehicle) => (
-              <CarBoardCard
+            );
+          })}
+        </div>
+      )}
+
+      <QueueList
+        t={t}
+        directionLabel={directionLabel(activeDirection)}
+        childrenWaiting={waitingChildren}
+        loading={loading}
+        selectedChildId={selectedChild?.id ?? null}
+        confirmDeleteChild={confirmDeleteChild}
+        boardMessage={boardMessage}
+        onSelectChild={selectWaitingChild}
+        onEdit={onEditChild}
+        onDeleteRequest={setConfirmDeleteChild}
+        onDeleteConfirm={deleteChild}
+        onDeleteCancel={() => setConfirmDeleteChild(null)}
+      />
+
+      <section className="car-board" aria-label={t.boardLabel}>
+        {servingVehicles.length === 0 ? (
+          <div className="board-empty">
+            <Car size={40} strokeWidth={1.8} aria-hidden="true" />
+            <h2>{t.boardNoCarsTitle}</h2>
+            <p className="muted">{t.boardNoCarsBody}</p>
+          </div>
+        ) : (
+          servingVehicles.map((vehicle) => (
+            <CarBoardCard
+              key={vehicle.id}
+              t={t}
+              vehicle={vehicle}
+              room={room}
+              direction={activeDirection}
+              childNameById={childNameById}
+              loading={loading}
+              selectedChild={selectedChild}
+              activeAssignmentId={activeAssignmentId}
+              confirmDelete={confirmDeleteVehicle === vehicle.id}
+              onSeatTap={(seatIndex) => handleSeatTap(vehicle, seatIndex)}
+              onEdit={() => onEditVehicle(vehicle.id)}
+              onEditChild={onEditChild}
+              onDeleteRequest={() => setConfirmDeleteVehicle(vehicle.id)}
+              onDeleteConfirm={() => deleteVehicle(vehicle.id)}
+              onDeleteCancel={() => setConfirmDeleteVehicle(null)}
+              onUnassign={(assignmentId) => {
+                setActiveAssignmentId(null);
+                onUnassign(assignmentId);
+              }}
+              onCloseSeatAction={() => setActiveAssignmentId(null)}
+            />
+          ))
+        )}
+
+        {inactiveVehicles.length > 0 && (
+          <div className="inactive-car-list">
+            {inactiveVehicles.map((vehicle) => (
+              <button
                 key={vehicle.id}
-                t={t}
-                vehicle={vehicle}
-                room={room}
-                direction={activeDirection}
-                childNameById={childNameById}
-                loading={loading}
-                selectedChild={selectedChild}
-                activeAssignmentId={activeAssignmentId}
-                confirmDelete={confirmDeleteVehicle === vehicle.id}
-                onSeatTap={(seatIndex) => handleSeatTap(vehicle, seatIndex)}
-                onEdit={() => onEditVehicle(vehicle.id)}
-                onEditChild={onEditChild}
-                onDeleteRequest={() => setConfirmDeleteVehicle(vehicle.id)}
-                onDeleteConfirm={() => deleteVehicle(vehicle.id)}
-                onDeleteCancel={() => setConfirmDeleteVehicle(null)}
-                onUnassign={(assignmentId) => {
-                  setActiveAssignmentId(null);
-                  onUnassign(assignmentId);
-                }}
-                onCloseSeatAction={() => setActiveAssignmentId(null)}
-              />
-            ))
-          )}
-
-          {inactiveVehicles.length > 0 && (
-            <div className="inactive-car-list">
-              {inactiveVehicles.map((vehicle) => (
-                <button
-                  key={vehicle.id}
-                  type="button"
-                  className="inactive-car"
-                  onClick={() => onEditVehicle(vehicle.id)}
-                >
-                  <CarIcon className="inline-icon" />
-                  {t.boardCarNotServing
-                    .replace("{driver}", vehicle.driverName)
-                    .replace("{direction}", directionLabel(activeDirection))}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <WaitingTray
-          t={t}
-          directionLabel={directionLabel(activeDirection)}
-          childrenWaiting={waitingChildren}
-          loading={loading}
-          selectedChildId={selectedChild?.id ?? null}
-          confirmDeleteChild={confirmDeleteChild}
-          onAddChild={onAddChild}
-          onSelectChild={selectWaitingChild}
-          onEdit={onEditChild}
-          onDeleteRequest={setConfirmDeleteChild}
-          onDeleteConfirm={deleteChild}
-          onDeleteCancel={() => setConfirmDeleteChild(null)}
-        />
+                type="button"
+                className="inactive-car"
+                onClick={() => onEditVehicle(vehicle.id)}
+              >
+                <Car size={18} strokeWidth={2} aria-hidden="true" />
+                {t.boardCarNotServing
+                  .replace("{driver}", vehicle.driverName)
+                  .replace("{direction}", directionLabel(activeDirection))}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
+      <Fab
+        addVehicleLabel={t.addVehicle}
+        addChildLabel={t.addChild}
+        onAddVehicle={onAddVehicle}
+        onAddChild={onAddChild}
+      />
     </>
   );
 }
@@ -367,49 +390,62 @@ function CarBoardCard({
   const assignments = assignmentsForVehicleDirection(room, vehicle.id, direction);
   const activeAssignment = assignments.find((assignment) => assignment.id === activeAssignmentId);
   const activeChildName = activeAssignment ? childNameById.get(activeAssignment.childId) ?? "?" : "";
-  const openSeats = Math.max(0, vehicle.seatCount - assignments.length);
+
+  const extras = [
+    vehicle.lendsBooster ? t.needsBooster : "",
+    vehicle.lendsRearFacing ? t.needsRearFacing : "",
+    vehicle.lendsFrontFacing ? t.needsFrontFacing : "",
+  ].filter(Boolean);
 
   return (
-    <article className="car-board-card">
-      <header className="car-board-head">
-        <div>
-          <p className="car-kicker">
-            <CarIcon className="inline-icon" />
-            {t.boardCar}
-          </p>
-          <h2>{vehicle.driverName}</h2>
-        </div>
-        <span className="car-seat-count">
-          {openSeats}/{vehicle.seatCount}
-        </span>
+    <article className="car-card">
+      <header className="car-card-head">
+        <strong className="car-driver">{vehicle.driverName}</strong>
+        {extras.length > 0 && (
+          <span className="car-extras">{extras.join(" · ")}</span>
+        )}
         <div className="car-card-actions">
-          <button type="button" className="secondary" onClick={onEdit} style={{ fontSize: "0.85rem" }}>
-            {t.driverEditCta}
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onEdit}
+            aria-label={t.driverEditCta}
+          >
+            <Pencil size={17} strokeWidth={2.2} aria-hidden="true" />
           </button>
-          {confirmDelete ? (
-            <>
-              <button type="button" className="danger" onClick={onDeleteConfirm} disabled={loading} style={{ fontSize: "0.85rem" }}>
-                {t.driverDeleteCta}
-              </button>
-              <button type="button" className="ghost" onClick={onDeleteCancel} style={{ fontSize: "0.85rem" }}>
-                {t.cancel}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="ghost" onClick={onDeleteRequest} aria-label={t.driverDeleteCta}>
-              x
-            </button>
-          )}
+          <button
+            type="button"
+            className="icon-button danger-icon"
+            onClick={onDeleteRequest}
+            aria-label={t.driverDeleteCta}
+          >
+            <Trash2 size={17} strokeWidth={2.2} aria-hidden="true" />
+          </button>
         </div>
       </header>
 
       {confirmDelete && (
-        <p className="muted" style={{ fontSize: "0.85rem" }}>
-          {t.driverDeleteConfirm.replace("{driver}", vehicle.driverName)}
-        </p>
+        <div className="confirm-row">
+          <span className="muted">
+            {t.driverDeleteConfirm.replace("{driver}", vehicle.driverName)}
+          </span>
+          <div className="row">
+            <button type="button" className="danger" onClick={onDeleteConfirm} disabled={loading}>
+              {t.driverDeleteCta}
+            </button>
+            <button type="button" className="ghost" onClick={onDeleteCancel}>
+              {t.cancel}
+            </button>
+          </div>
+        </div>
       )}
 
-      <SeatSchematic seats={displaySeats} label={`${vehicle.driverName} ${direction}`} onTap={onSeatTap} />
+      <SeatSchematic
+        seats={displaySeats}
+        direction={direction}
+        label={`${vehicle.driverName} ${direction}`}
+        onTap={onSeatTap}
+      />
 
       {activeAssignment && (
         <div className="seat-action-card">
@@ -435,39 +471,18 @@ function CarBoardCard({
           </div>
         </div>
       )}
-
-      <div className="car-card-foot">
-        <AccessorySummary t={t} vehicle={vehicle} />
-      </div>
-
-      {assignments.length > 0 && (
-        <div className="seated-riders">
-          {assignments.map((assignment) => (
-            <button
-              key={assignment.id}
-              type="button"
-              className="seated-rider"
-              onClick={() => onSeatTap(assignment.seatIndex)}
-              disabled={loading}
-              title={t.childMoveToQueueCta}
-            >
-              {childNameById.get(assignment.childId) ?? "?"}
-            </button>
-          ))}
-        </div>
-      )}
     </article>
   );
 }
 
-function WaitingTray({
+function QueueList({
   t,
   directionLabel,
   childrenWaiting,
   loading,
   selectedChildId,
   confirmDeleteChild,
-  onAddChild,
+  boardMessage,
   onSelectChild,
   onEdit,
   onDeleteRequest,
@@ -480,7 +495,7 @@ function WaitingTray({
   loading: boolean;
   selectedChildId: string | null;
   confirmDeleteChild: string | null;
-  onAddChild: () => void;
+  boardMessage: string;
   onSelectChild: (childId: string) => void;
   onEdit: (childId: string) => void;
   onDeleteRequest: (childId: string) => void;
@@ -488,59 +503,82 @@ function WaitingTray({
   onDeleteCancel: () => void;
 }) {
   return (
-    <aside className="waiting-tray" aria-label={t.boardWaitingForSeat}>
-      <div className="waiting-tray-head">
-        <div>
-          <p className="car-kicker">
-            <PeopleWaitingIcon className="inline-icon" />
-            {directionLabel}
-          </p>
-          <h2>{t.boardWaitingForSeat}</h2>
-        </div>
-        <button type="button" className="ghost" onClick={onAddChild}>
-          + {t.addChildShort}
-        </button>
-      </div>
+    <section className="queue" aria-label={t.boardWaitingForSeat}>
+      <p className="queue-head">
+        {t.boardWaitingForSeat}
+        <span className="queue-head-dir">{directionLabel}</span>
+      </p>
 
       {childrenWaiting.length === 0 ? (
-        <p className="empty compact">{t.boardNoWaitingChildren}</p>
+        <p className="queue-empty muted">{t.boardNoWaitingChildren}</p>
       ) : (
-        <div className="child-token-list">
-          {childrenWaiting.map((child) => (
-            <div key={child.id} className="child-token-card">
-              <button
-                type="button"
-                className={`child-token${selectedChildId === child.id ? " selected" : ""}`}
-                onClick={() => onSelectChild(child.id)}
-                disabled={loading}
-                aria-pressed={selectedChildId === child.id}
-              >
-                {child.name}
-              </button>
-              {confirmDeleteChild === child.id ? (
-                <div className="row">
-                  <button type="button" className="danger" onClick={() => onDeleteConfirm(child.id)} disabled={loading}>
-                    {t.childDeleteCta}
-                  </button>
-                  <button type="button" className="ghost" onClick={onDeleteCancel}>
-                    {t.cancel}
-                  </button>
-                </div>
-              ) : (
-                <div className="child-token-actions">
-                  <button type="button" className="ghost" onClick={() => onEdit(child.id)}>
-                    {t.childEditCta}
-                  </button>
-                  <button type="button" className="ghost" onClick={() => onDeleteRequest(child.id)}>
-                    {t.childDeleteCta}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <ul className="queue-list">
+          {childrenWaiting.map((child) => {
+            const armed = selectedChildId === child.id;
+            const confirming = confirmDeleteChild === child.id;
+            return (
+              <li key={child.id} className={`queue-row${armed ? " armed" : ""}`}>
+                <button
+                  type="button"
+                  className="queue-row-name"
+                  onClick={() => onSelectChild(child.id)}
+                  disabled={loading}
+                  aria-pressed={armed}
+                >
+                  <span className="queue-avatar" aria-hidden="true">
+                    {(child.name.trim()[0] ?? "?").toUpperCase()}
+                  </span>
+                  <span className="queue-row-text">
+                    {child.name}
+                    {armed && <span className="queue-row-cue">{t.boardTapSeat}</span>}
+                  </span>
+                </button>
+                {confirming ? (
+                  <div className="queue-row-actions">
+                    <button
+                      type="button"
+                      className="danger compact-button"
+                      onClick={() => onDeleteConfirm(child.id)}
+                      disabled={loading}
+                    >
+                      {t.childDeleteCta}
+                    </button>
+                    <button type="button" className="ghost compact-button" onClick={onDeleteCancel}>
+                      {t.cancel}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="queue-row-actions">
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => onEdit(child.id)}
+                      aria-label={t.childEditCta}
+                    >
+                      <Pencil size={16} strokeWidth={2.2} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button danger-icon"
+                      onClick={() => onDeleteRequest(child.id)}
+                      aria-label={t.childDeleteCta}
+                    >
+                      <Trash2 size={16} strokeWidth={2.2} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </aside>
+
+      {boardMessage && (
+        <p className="board-inline-message" role="status">
+          {boardMessage}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -550,19 +588,4 @@ function assignmentErrorCopy(t: Translation, code: ErrorCode): string {
   if (code === "SEAT_ALREADY_ASSIGNED") return t.boardSeatUnavailable;
   if (code === "SEAT_NOT_FOUND") return t.boardSeatUnavailable;
   return t.unexpectedError;
-}
-
-function AccessorySummary({ t, vehicle }: { t: Translation; vehicle: Vehicle }) {
-  const labels = [
-    vehicle.lendsBooster ? t.needsBooster : "",
-    vehicle.lendsRearFacing ? t.needsRearFacing : "",
-    vehicle.lendsFrontFacing ? t.needsFrontFacing : "",
-  ].filter(Boolean);
-
-  if (labels.length === 0) return <span className="muted">{t.boardNoExtras}</span>;
-  return (
-    <span className="muted">
-      {t.boardExtras}: {labels.join(", ")}
-    </span>
-  );
 }

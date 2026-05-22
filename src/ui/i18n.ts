@@ -17,13 +17,11 @@ const en = {
   joinRoomBody: "Enter the code your organizer shared with you to join the planning.",
   joinRoomCta: "Join room",
   roomCode: "Room code",
+  orCreateRoom: "or create a room",
 
   /* Organizer wizard */
   organizerWizardTitle: "Create a room",
-  setupStepEvent: "Event",
-  setupStepOutbound: "Outbound",
-  setupStepInbound: "Inbound",
-  setupStepReview: "Review",
+  eventDate: "Event date",
   eventName: "Event name",
   eventInfo: "Information everyone should see",
   mapLink: "Google Maps link",
@@ -96,11 +94,27 @@ const en = {
 
   /* + sheet */
   addVehicle: "Add a car",
-  addChild: "Add a child to the queue",
+  addChild: "Add a child",
   addChildShort: "Child",
   cancel: "Cancel",
+  share: "Share",
+  editEvent: "Edit event",
+  openInMaps: "Open in Maps",
 
   /* Vehicle wizard */
+  promptDriverName: "What's the driver's name?",
+  promptSeatCount: "How many passenger seats?",
+  promptReserveSeats: "Want to reserve any seats for your own children?",
+  promptVehicleDirections: "Which trips will this car cover?",
+  promptVehicleExtras: "Can you lend any child seats?",
+  promptVehicleReview: "All set — does this look right?",
+
+  /* Child wizard */
+  promptChildName: "What's the child's name?",
+  promptChildDirections: "Which trips will they need?",
+  promptChildBorrow: "Do they need to borrow a child seat?",
+  promptChildReview: "All set — does this look right?",
+
   vehicleWizardTitle: "Add a car",
   vehicleStepDriver: "Driver",
   vehicleStepSeats: "Seats",
@@ -110,11 +124,12 @@ const en = {
   driverName: "Driver name",
   driverNameHint: "Use a first name or nickname.",
   seatCount: "Number of seats",
-  seatCountHint: "Not including the driver's seat. Maximum 9.",
+  seatCountHint: "Not including the driver's seat. Maximum 5.",
   seatCountDecrease: "Remove one passenger seat",
   seatCountIncrease: "Add one passenger seat",
   reserveSeatHint: "Tap a seat to reserve it for one of your own children. Tap again to clear.",
   reservedRiderName: "Rider name",
+  seat: "Seat",
   pickDirectionsVehicle: "Which trips can this car serve?",
   pickLending:
     "Do you have extra child seats you can lend to other riders in your car? Tick whatever you can bring.",
@@ -184,12 +199,10 @@ const sv: Translation = {
   joinRoomBody: "Skriv koden som organisatören delade för att gå med i planeringen.",
   joinRoomCta: "Gå med",
   roomCode: "Rumskod",
+  orCreateRoom: "eller skapa ett rum",
 
   organizerWizardTitle: "Skapa ett rum",
-  setupStepEvent: "Händelse",
-  setupStepOutbound: "Utresa",
-  setupStepInbound: "Hemresa",
-  setupStepReview: "Granska",
+  eventDate: "Datum",
   eventName: "Händelsens namn",
   eventInfo: "Information som alla ska se",
   mapLink: "Google Maps-länk",
@@ -259,9 +272,24 @@ const sv: Translation = {
   boardSeatOccupiedMeta: "{direction} med {driver}, plats {seat}",
 
   addVehicle: "Lägg till en bil",
-  addChild: "Lägg till ett barn i kön",
+  addChild: "Lägg till ett barn",
   addChildShort: "Barn",
   cancel: "Avbryt",
+  share: "Dela",
+  editEvent: "Redigera händelse",
+  openInMaps: "Öppna i Maps",
+
+  promptDriverName: "Vad heter föraren?",
+  promptSeatCount: "Hur många passagerarsäten?",
+  promptReserveSeats: "Vill du reservera platser åt egna barn?",
+  promptVehicleDirections: "Vilka resor täcker den här bilen?",
+  promptVehicleExtras: "Kan du låna ut barnstolar?",
+  promptVehicleReview: "Ser det bra ut?",
+
+  promptChildName: "Vad heter barnet?",
+  promptChildDirections: "Vilka resor behöver de?",
+  promptChildBorrow: "Behöver de låna en barnstol?",
+  promptChildReview: "Ser det bra ut?",
 
   vehicleWizardTitle: "Lägg till en bil",
   vehicleStepDriver: "Förare",
@@ -272,11 +300,12 @@ const sv: Translation = {
   driverName: "Förarens namn",
   driverNameHint: "Använd ett förnamn eller smeknamn.",
   seatCount: "Antal platser",
-  seatCountHint: "Räkna inte med förarens egen plats. Max 9.",
+  seatCountHint: "Räkna inte med förarens egen plats. Max 5.",
   seatCountDecrease: "Ta bort en passagerarplats",
   seatCountIncrease: "Lägg till en passagerarplats",
   reserveSeatHint: "Tryck på en plats för att reservera den åt ett av dina egna barn. Tryck igen för att rensa.",
   reservedRiderName: "Passagerarens namn",
+  seat: "Plats",
   pickDirectionsVehicle: "Vilka resor kan bilen köra?",
   pickLending:
     "Har du extra bilbarnstolar du kan låna ut till andra passagerare? Bocka i det du kan ta med.",

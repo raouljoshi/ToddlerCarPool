@@ -7,7 +7,7 @@ describe("App", () => {
     vi.stubGlobal("fetch", vi.fn());
     render(<App />);
 
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("ToddlerCarPool")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EN" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "SV" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /room code|rumskod/i })).toBeInTheDocument();

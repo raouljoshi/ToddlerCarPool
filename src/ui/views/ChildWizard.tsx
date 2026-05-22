@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { ArrowRight, Check, ChevronLeft } from "lucide-react";
 import type { CreateChildRequest, UpdateChildRequest } from "../../application/dto";
 import type { BorrowFlags, Child, Direction } from "../../domain/types";
 import type { Translation } from "../i18n";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import { DirectionPicker } from "../components/DirectionPicker";
+import { WizardProgress } from "../components/WizardProgress";
 
 interface CreateChildWizardProps {
   mode: "create";
@@ -26,13 +27,11 @@ interface EditChildWizardProps {
 
 type ChildWizardProps = CreateChildWizardProps | EditChildWizardProps;
 
-// ── Wizard ────────────────────────────────────────────────────────────────────
-
 export function ChildWizard(props: ChildWizardProps) {
   const { t, enabledDirections, loading, onCancel } = props;
 
-  const steps = [t.childStepName, t.childStepDirections, t.childStepBorrow, t.childStepReview];
-  const lastStep = steps.length - 1;
+  const lastStep = 3;
+  const progressTotal = 4;
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState(props.mode === "edit" ? props.child.name : "");
@@ -62,112 +61,90 @@ export function ChildWizard(props: ChildWizardProps) {
   }
 
   function handleSubmit() {
-    const payload = {
-      name: name.trim(),
-      directions,
-      borrows,
-    };
-    if (props.mode === "create") {
-      props.onSubmit(payload);
-    } else {
-      props.onSubmit(payload);
-    }
+    const payload = { name: name.trim(), directions, borrows };
+    props.onSubmit(payload);
   }
 
   const childInitial = (name.trim()[0] ?? "?").toUpperCase();
 
+  const prompts = [
+    t.promptChildName,
+    t.promptChildDirections,
+    t.promptChildBorrow,
+    t.promptChildReview,
+  ];
+
   return (
     <section className="panel wizard">
-      <h2>{props.mode === "create" ? t.childWizardTitle : t.childEditCta}</h2>
-      <ol className="stepper" aria-label="Steps">
-        {steps.map((label, i) => {
-          const cls = i === step ? "active" : i < step ? "done" : "";
-          return (
-            <li key={i} className={cls}>
-              <span className="num">{i + 1}</span>
-              {label}
-            </li>
-          );
-        })}
-      </ol>
+      <div className="wiz-header">
+        <button
+          type="button"
+          className="wiz-back"
+          onClick={step === 0 ? onCancel : () => setStep(step - 1)}
+          aria-label={step === 0 ? t.cancel : t.back}
+        >
+          <ChevronLeft size={20} strokeWidth={2.5} />
+        </button>
+        <WizardProgress total={progressTotal} current={step} />
+      </div>
 
       <div className="wizard-step">
-        {/* Step 0: Name */}
+        <p className="wizard-prompt">{prompts[step]}</p>
+
         {step === 0 && (
           <div className="child-preview-layout">
             <div className="child-preview-card" aria-hidden="true">
               <span className="child-avatar">{childInitial}</span>
               <strong>{name.trim() || t.childName}</strong>
-              <span className="muted">{t.boardWaitingForSeat}</span>
             </div>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              placeholder="e.g. Leo"
+              maxLength={40}
+            />
+          </div>
+        )}
+
+        {step === 1 && (
+          <DirectionPicker
+            options={enabledDirections}
+            selected={directions}
+            labelFor={(d) => (d === "outbound" ? t.outboundLabel : t.inboundLabel)}
+            onToggle={toggleDirection}
+          />
+        )}
+
+        {step === 2 && (
+          <div className="checkbox-row visual-choice-grid">
             <label>
-              {t.childName}
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                placeholder="e.g. Leo"
-                maxLength={40}
+                type="checkbox"
+                checked={borrows.booster}
+                onChange={() => toggleBorrow("booster")}
               />
+              {t.borrowBooster}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={borrows.rearFacing}
+                onChange={() => toggleBorrow("rearFacing")}
+              />
+              {t.borrowRearFacing}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={borrows.frontFacing}
+                onChange={() => toggleBorrow("frontFacing")}
+              />
+              {t.borrowFrontFacing}
             </label>
           </div>
         )}
 
-        {/* Step 1: Directions */}
-        {step === 1 && (
-          <>
-            <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickDirectionsChild}</p>
-            <div className="checkbox-row visual-choice-grid">
-              {enabledDirections.map((d) => (
-                <label key={d}>
-                  <input
-                    type="checkbox"
-                    checked={directions.includes(d)}
-                    onChange={() => toggleDirection(d)}
-                  />
-                  <span className={`dir-pill ${d}`}>
-                    {d === "outbound" ? t.outboundLabel : t.inboundLabel}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Step 2: Borrow */}
-        {step === 2 && (
-          <>
-            <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickBorrow}</p>
-            <div className="checkbox-row visual-choice-grid">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={borrows.booster}
-                  onChange={() => toggleBorrow("booster")}
-                />
-                {t.borrowBooster}
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={borrows.rearFacing}
-                  onChange={() => toggleBorrow("rearFacing")}
-                />
-                {t.borrowRearFacing}
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={borrows.frontFacing}
-                  onChange={() => toggleBorrow("frontFacing")}
-                />
-                {t.borrowFrontFacing}
-              </label>
-            </div>
-          </>
-        )}
-
-        {/* Step 3: Review */}
         {step === 3 && (
           <div className="review-card">
             <div className="child-review-head">
@@ -182,31 +159,40 @@ export function ChildWizard(props: ChildWizardProps) {
               ))}
             </div>
             {(borrows.booster || borrows.rearFacing || borrows.frontFacing) && (
-              <div className="row">
-                {borrows.booster && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.borrowBooster}</span>}
-                {borrows.rearFacing && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.borrowRearFacing}</span>}
-                {borrows.frontFacing && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.borrowFrontFacing}</span>}
-              </div>
+              <p className="muted hint">
+                {[
+                  borrows.booster ? t.borrowBooster : "",
+                  borrows.rearFacing ? t.borrowRearFacing : "",
+                  borrows.frontFacing ? t.borrowFrontFacing : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             )}
           </div>
         )}
       </div>
 
-      <div className="wizard-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={step === 0 ? onCancel : () => setStep(step - 1)}
-        >
-          {step === 0 ? t.cancel : t.back}
-        </button>
+      <div className="wiz-nav">
         {step === lastStep ? (
-          <button type="button" className="accent" onClick={handleSubmit} disabled={loading}>
-            {t.saveChild}
+          <button
+            type="button"
+            className="wiz-advance accent"
+            onClick={handleSubmit}
+            disabled={loading}
+            aria-label={t.saveChild}
+          >
+            <Check size={22} strokeWidth={2.5} />
           </button>
         ) : (
-          <button type="button" onClick={() => setStep(step + 1)} disabled={!canAdvance()}>
-            {t.next}
+          <button
+            type="button"
+            className="wiz-advance"
+            onClick={() => setStep(step + 1)}
+            disabled={!canAdvance()}
+            aria-label={t.next}
+          >
+            <ArrowRight size={22} strokeWidth={2.5} />
           </button>
         )}
       </div>

@@ -25,6 +25,7 @@ export function TripDetailsSheet({
   onSubmit,
 }: TripDetailsSheetProps) {
   const [label, setLabel] = useState(room.settings.label);
+  const [date, setDate] = useState(room.settings.date ?? "");
   const [staticInfo, setStaticInfo] = useState(room.settings.staticInfo ?? "");
   const [mapLink, setMapLink] = useState(room.settings.mapLink ?? "");
   const [outboundEnabled, setOutboundEnabled] = useState(room.settings.outbound.enabled);
@@ -38,6 +39,7 @@ export function TripDetailsSheet({
   function save() {
     onSubmit({
       label: label.trim(),
+      date: date || undefined,
       staticInfo: staticInfo.trim() || undefined,
       mapLink: mapLink.trim() || undefined,
       outbound: {
@@ -76,6 +78,15 @@ export function TripDetailsSheet({
             value={label}
             onChange={(event) => setLabel(event.target.value)}
             maxLength={80}
+          />
+        </label>
+
+        <label>
+          {t.eventDate}
+          <input
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
           />
         </label>
 

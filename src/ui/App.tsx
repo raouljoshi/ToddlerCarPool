@@ -25,6 +25,7 @@ import {
   updateSettings,
   updateVehicle,
 } from "./api";
+import { AppBar } from "./components/AppBar";
 import { HeroCars } from "./components/HeroCars";
 import { getInitialLanguage, saveLanguage, translations, type Language, type Translation } from "./i18n";
 import { BoardView } from "./views/BoardView";
@@ -251,12 +252,17 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <Header
+      <AppBar
         language={language}
         onLanguage={(next) => {
           setLanguage(next);
           setNotice("");
         }}
+        onBack={
+          view.kind === "create-wizard"
+            ? () => setView({ kind: "landing" })
+            : undefined
+        }
       />
 
       {error ? <Feedback kind="error" title={t.errorTitle} message={error} /> : null}
@@ -270,7 +276,6 @@ export function App() {
           onJoin={() => joinCode && void loadRoom(joinCode, false)}
           onStartCreate={() => setView({ kind: "create-wizard" })}
           loading={loading}
-          hasRoomParam={Boolean(new URLSearchParams(window.location.search).get("room"))}
         />
       )}
 
@@ -290,7 +295,6 @@ export function App() {
           room={room}
           justCreated={view.justCreated}
           loading={loading}
-          onCopyCode={() => void copyText(room.code, t.codeCopied)}
           onCopyLink={() =>
             void copyText(
               `${window.location.origin}/?room=${encodeURIComponent(room.code)}`,
@@ -298,7 +302,6 @@ export function App() {
             )
           }
           onOpenDetails={() => setRoomSheet({ kind: "trip-details" })}
-          onRefresh={() => void loadRoom(room.code, false)}
           onAddVehicle={() => setRoomSheet({ kind: "add-vehicle" })}
           onAddChild={() => setRoomSheet({ kind: "add-child" })}
           onEditVehicle={(vehicleId) => setRoomSheet({ kind: "edit-vehicle", vehicleId })}
@@ -422,39 +425,6 @@ function SheetFrame({
   );
 }
 
-function Header({
-  language,
-  onLanguage,
-}: {
-  language: Language;
-  onLanguage: (lang: Language) => void;
-}) {
-  return (
-    <header className="topbar">
-      <span className="brand" aria-label="ToddlerCarPool">
-        <span className="brand-dot" aria-hidden="true" />
-        ToddlerCarPool
-      </span>
-      <div className="segmented" role="group" aria-label="Language">
-        <button
-          type="button"
-          className={language === "en" ? "active" : ""}
-          onClick={() => onLanguage("en")}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          className={language === "sv" ? "active" : ""}
-          onClick={() => onLanguage("sv")}
-        >
-          SV
-        </button>
-      </div>
-    </header>
-  );
-}
-
 function LandingView({
   t,
   joinCode,
@@ -462,53 +432,46 @@ function LandingView({
   onJoin,
   onStartCreate,
   loading,
-  hasRoomParam,
 }: {
-  t: (typeof translations)["en"];
+  t: Translation;
   joinCode: string;
   onJoinCodeChange: (code: string) => void;
   onJoin: () => void;
   onStartCreate: () => void;
   loading: boolean;
-  hasRoomParam: boolean;
 }) {
   return (
-    <section className="landing-hero">
-      <p className="eyebrow">{t.brandTagline}</p>
-      <h1>{t.introHeadline}</h1>
-      <p>{t.introBody}</p>
+    <section className="landing">
       <HeroCars />
-      <div className="landing-actions">
-        <article className="landing-action primary">
-          <h2>{t.startNewRoomTitle}</h2>
-          <p>{t.startNewRoomBody}</p>
-          <div>
-            <button type="button" className="accent" onClick={onStartCreate} disabled={loading}>
-              {t.startNewRoomCta}
-            </button>
-          </div>
-        </article>
-        <article className={`landing-action${hasRoomParam ? " highlighted" : ""}`}>
-          <h2>{t.joinRoomTitle}</h2>
-          <p>{t.joinRoomBody}</p>
-          <label>
-            {t.roomCode}
-            <input
-              value={joinCode}
-              onChange={(event) => onJoinCodeChange(event.target.value)}
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              inputMode="text"
-            />
-          </label>
-          <div>
-            <button type="button" onClick={onJoin} disabled={!joinCode || loading}>
-              {t.joinRoomCta}
-            </button>
-          </div>
-        </article>
-      </div>
+      <p className="landing-tagline">{t.brandTagline}</p>
+
+      <form
+        className="join-card"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (joinCode && !loading) onJoin();
+        }}
+      >
+        <label className="join-field">
+          {t.roomCode}
+          <input
+            value={joinCode}
+            onChange={(event) => onJoinCodeChange(event.target.value)}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="text"
+            placeholder="ABCD"
+          />
+        </label>
+        <button type="submit" className="accent" disabled={!joinCode || loading}>
+          {t.joinRoomCta}
+        </button>
+      </form>
+
+      <button type="button" className="link-button" onClick={onStartCreate} disabled={loading}>
+        {t.orCreateRoom}
+      </button>
     </section>
   );
 }

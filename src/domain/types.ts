@@ -15,6 +15,7 @@ export interface DirectionMeta {
 
 export interface RoomSettings {
   label: string;
+  date?: string;
   staticInfo?: string;
   mapLink?: string;
   outbound: DirectionMeta;
@@ -88,7 +89,7 @@ export const ROOM_LIMITS = {
   vehicles: 30,
   children: 100,
   assignments: 200,
-  seatsPerVehicle: 9,
+  seatsPerVehicle: 5,
 } as const;
 
 export const ROOM_TTL_DAYS = 30;

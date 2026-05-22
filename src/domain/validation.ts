@@ -16,6 +16,7 @@ const nameMax = 60;
 const labelMax = 80;
 const infoMax = 800;
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 export function normalizeRoomCode(code: string): string {
   return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -36,6 +37,12 @@ function cleanTime(value: unknown): string | undefined {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   return timeRegex.test(trimmed) ? trimmed : undefined;
+}
+
+function cleanDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return dateRegex.test(trimmed) ? trimmed : undefined;
 }
 
 function cleanTimeReference(value: unknown): TimeReference | undefined {
@@ -75,6 +82,7 @@ export function validateSettings(input: Partial<RoomSettings>): Result<RoomSetti
   }
   return ok({
     label: cleanText(input.label, labelMax) || "Carpool event",
+    date: cleanDate(input.date),
     staticInfo: cleanLongText(input.staticInfo),
     mapLink: cleanUrlLike(input.mapLink),
     outbound,
