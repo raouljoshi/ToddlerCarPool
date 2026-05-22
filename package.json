@@ -18,9 +18,10 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
-    "vite": "^7.2.6",
+    "lucide-react": "^1.16.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "vite": "^7.2.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260520.0",

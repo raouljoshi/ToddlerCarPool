@@ -88,10 +88,8 @@ function renderBoard(overrides: Partial<ComponentProps<typeof BoardView>> = {}) 
     room: buildRoom(),
     justCreated: false,
     loading: false,
-    onCopyCode: vi.fn(),
     onCopyLink: vi.fn(),
     onOpenDetails: vi.fn(),
-    onRefresh: vi.fn(),
     onAddVehicle: vi.fn(),
     onAddChild: vi.fn(),
     onEditVehicle: vi.fn(),
@@ -113,7 +111,7 @@ describe("BoardView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Sam" }));
 
-    expect(screen.getByText("Sam selected")).toBeInTheDocument();
+    expect(screen.getByText("Tap an available seat to place them.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Seat 2: That seat does not work for this child." })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Seat 2: available" }));

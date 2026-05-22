@@ -1,17 +1,18 @@
 import { useState } from "react";
+import { Minus, Plus, ArrowRight, Check, ChevronLeft } from "lucide-react";
 import type { CreateVehicleRequest, UpdateVehicleRequest } from "../../application/dto";
 import type { Direction, Vehicle } from "../../domain/types";
 import { ROOM_LIMITS } from "../../domain/types";
 import type { Translation } from "../i18n";
+import { DirectionPicker } from "../components/DirectionPicker";
 import { SeatSchematic } from "../components/SeatSchematic";
 import type { SeatDisplayState } from "../components/SeatSchematic";
+import { WizardProgress } from "../components/WizardProgress";
 
 interface ReservedSeat {
   seatIndex: number;
   name: string;
 }
-
-// ── Create mode ──────────────────────────────────────────────────────────────
 
 interface CreateVehicleWizardProps {
   mode: "create";
@@ -21,8 +22,6 @@ interface CreateVehicleWizardProps {
   onCancel: () => void;
   onSubmit: (request: CreateVehicleRequest) => void;
 }
-
-// ── Edit mode ─────────────────────────────────────────────────────────────────
 
 interface EditVehicleWizardProps {
   mode: "edit";
@@ -36,33 +35,20 @@ interface EditVehicleWizardProps {
 
 type VehicleWizardProps = CreateVehicleWizardProps | EditVehicleWizardProps;
 
-// ── Wizard ────────────────────────────────────────────────────────────────────
-
 export function VehicleWizard(props: VehicleWizardProps) {
   const { t, enabledDirections, loading, onCancel } = props;
 
-  // Create mode steps: 0=driver 1=seats 2=reserve 3=directions 4=accessories 5=review
-  // Edit mode steps: 0=driver 1=directions 2=accessories 3=review
-  const createSteps = [
-    t.vehicleStepDriver,
-    t.vehicleStepSeats,
-    t.vehicleStepSeats, // reserve step shares Seats label
-    t.vehicleStepDirections,
-    t.vehicleStepLending,
-    t.vehicleStepReview,
-  ];
-  const editSteps = [t.vehicleStepDriver, t.vehicleStepDirections, t.vehicleStepLending, t.vehicleStepReview];
-  const steps = props.mode === "create" ? createSteps : editSteps;
-  const lastStep = steps.length - 1;
+  // Create: 0=driver 1=seats 2=reserve 3=directions 4=accessories 5=review
+  // Edit:   0=driver 1=directions 2=accessories 3=review
+  const lastStep = props.mode === "create" ? 5 : 3;
+  const progressTotal = props.mode === "create" ? 5 : 4;
 
   const [step, setStep] = useState(0);
   const [driverName, setDriverName] = useState(props.mode === "edit" ? props.vehicle.driverName : "");
   const [seatCount, setSeatCount] = useState(props.mode === "edit" ? props.vehicle.seatCount : 3);
   const [reserved, setReserved] = useState<ReservedSeat[]>([]);
   const [directions, setDirections] = useState<Direction[]>(
-    props.mode === "edit"
-      ? props.vehicle.directions
-      : enabledDirections,
+    props.mode === "edit" ? props.vehicle.directions : enabledDirections,
   );
   const [lendsBooster, setLendsBooster] = useState(
     props.mode === "edit" ? props.vehicle.lendsBooster : false,
@@ -73,6 +59,14 @@ export function VehicleWizard(props: VehicleWizardProps) {
   const [lendsFrontFacing, setLendsFrontFacing] = useState(
     props.mode === "edit" ? props.vehicle.lendsFrontFacing : false,
   );
+
+  function progressCurrent(): number {
+    if (props.mode === "create") {
+      if (step === 2) return 1;
+      if (step > 2) return step - 1;
+    }
+    return step;
+  }
 
   function toggleDirection(d: Direction) {
     setDirections((prev) =>
@@ -89,9 +83,7 @@ export function VehicleWizard(props: VehicleWizardProps) {
   }
 
   function updateReservedName(si: number, name: string) {
-    setReserved((prev) =>
-      prev.map((r) => (r.seatIndex === si ? { ...r, name } : r)),
-    );
+    setReserved((prev) => prev.map((r) => (r.seatIndex === si ? { ...r, name } : r)));
   }
 
   function changeSeatCount(delta: number) {
@@ -104,7 +96,6 @@ export function VehicleWizard(props: VehicleWizardProps) {
   function canAdvance(): boolean {
     if (step === 0) return driverName.trim().length > 0;
     if (props.mode === "create" && step === 2) {
-      // all reserved seats must have names
       return reserved.every((r) => r.name.trim().length > 0);
     }
     const dirStep = props.mode === "create" ? 3 : 1;
@@ -117,6 +108,7 @@ export function VehicleWizard(props: VehicleWizardProps) {
     if (r) return { kind: "reserved", name: r.name };
     return { kind: "empty" };
   });
+  const previewDirection = directions[0] ?? "outbound";
 
   function buildCreateRequest(): CreateVehicleRequest {
     return {
@@ -150,55 +142,52 @@ export function VehicleWizard(props: VehicleWizardProps) {
     }
   }
 
+  const prompts: Record<number, string> = props.mode === "create"
+    ? {
+        0: t.promptDriverName,
+        1: t.promptSeatCount,
+        2: t.promptReserveSeats,
+        3: t.promptVehicleDirections,
+        4: t.promptVehicleExtras,
+        5: t.promptVehicleReview,
+      }
+    : {
+        0: t.promptDriverName,
+        1: t.promptVehicleDirections,
+        2: t.promptVehicleExtras,
+        3: t.promptVehicleReview,
+      };
+
   return (
     <section className="panel wizard">
-      <h2>{props.mode === "create" ? t.vehicleWizardTitle : t.driverEditCta}</h2>
-      <ol className="stepper" aria-label="Steps">
-        {steps
-          .map((label, i) => ({ label, i }))
-          .filter(({ i }) => !(props.mode === "create" && i === 2))
-          .map(({ label, i }, v) => {
-            // Steps 1+2 both belong to the "Seats" stepper item in create mode
-            const isActive =
-              props.mode === "create" && i === 1
-                ? step === 1 || step === 2
-                : i === step;
-            const isDone =
-              props.mode === "create" && i === 1 ? step > 2 : i < step;
-            const cls = isActive ? "active" : isDone ? "done" : "";
-            return (
-              <li key={i} className={cls}>
-                <span className="num">{v + 1}</span>
-                {label}
-              </li>
-            );
-          })}
-      </ol>
+      <div className="wiz-header">
+        <button
+          type="button"
+          className="wiz-back"
+          onClick={step === 0 ? onCancel : () => setStep(step - 1)}
+          aria-label={step === 0 ? t.cancel : t.back}
+        >
+          <ChevronLeft size={20} strokeWidth={2.5} />
+        </button>
+        <WizardProgress total={progressTotal} current={progressCurrent()} />
+      </div>
 
       <div className="wizard-step">
-        {/* Step 0: Driver name */}
+        <p className="wizard-prompt">{prompts[step]}</p>
+
         {step === 0 && (
-          <label>
-            {t.driverName}
-            <input
-              value={driverName}
-              onChange={(e) => setDriverName(e.target.value)}
-              autoFocus
-              placeholder="e.g. Maria"
-              maxLength={40}
-            />
-            <span className="muted" style={{ fontSize: "0.85rem" }}>{t.driverNameHint}</span>
-          </label>
+          <input
+            value={driverName}
+            onChange={(e) => setDriverName(e.target.value)}
+            autoFocus
+            placeholder="e.g. Maria"
+            maxLength={40}
+          />
         )}
 
-        {/* Step 1 (create): Seat count */}
         {props.mode === "create" && step === 1 && (
           <>
             <div className="seat-count-picker">
-              <div>
-                <p className="field-title">{t.seatCount}</p>
-                <span className="muted" style={{ fontSize: "0.85rem" }}>{t.seatCountHint}</span>
-              </div>
               <div className="stepper-control" role="group" aria-label={t.seatCount}>
                 <button
                   type="button"
@@ -207,7 +196,7 @@ export function VehicleWizard(props: VehicleWizardProps) {
                   disabled={seatCount <= 1}
                   aria-label={t.seatCountDecrease}
                 >
-                  -
+                  <Minus size={18} strokeWidth={2.6} aria-hidden="true" />
                 </button>
                 <strong aria-live="polite">{seatCount}</strong>
                 <button
@@ -217,33 +206,38 @@ export function VehicleWizard(props: VehicleWizardProps) {
                   disabled={seatCount >= ROOM_LIMITS.seatsPerVehicle}
                   aria-label={t.seatCountIncrease}
                 >
-                  +
+                  <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
                 </button>
               </div>
             </div>
             <div className="seat-preview">
-              <SeatSchematic seats={seatsForSchematic} label={`${seatCount} passenger seats`} />
+              <SeatSchematic
+                seats={seatsForSchematic}
+                direction={previewDirection}
+                label={`${seatCount} passenger seats`}
+              />
             </div>
           </>
         )}
 
-        {/* Step 2 (create): Reserve seats */}
         {props.mode === "create" && step === 2 && (
           <>
-            <p className="muted" style={{ fontSize: "0.92rem" }}>{t.reserveSeatHint}</p>
-            <SeatSchematic seats={seatsForSchematic} onTap={toggleReserved} />
+            <SeatSchematic
+              seats={seatsForSchematic}
+              direction={previewDirection}
+              onTap={toggleReserved}
+            />
             {reserved.length > 0 && (
-              <div style={{ display: "grid", gap: "8px" }}>
+              <div className="reserved-names">
                 {reserved
                   .sort((a, b) => a.seatIndex - b.seatIndex)
                   .map((r) => (
                     <label key={r.seatIndex}>
-                      {t.reservedRiderName} (seat {r.seatIndex + 1})
+                      {t.reservedRiderName} · {t.seat} {r.seatIndex + 1}
                       <input
                         value={r.name}
                         onChange={(e) => updateReservedName(r.seatIndex, e.target.value)}
                         placeholder="Child's name"
-                        autoFocus={false}
                         maxLength={40}
                       />
                     </label>
@@ -253,70 +247,46 @@ export function VehicleWizard(props: VehicleWizardProps) {
           </>
         )}
 
-        {/* Directions step */}
         {((props.mode === "create" && step === 3) ||
           (props.mode === "edit" && step === 1)) && (
-          <>
-            <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickDirectionsVehicle}</p>
-            {enabledDirections.length === 0 && (
-              <p className="muted">{t.queueEmpty}</p>
-            )}
-            <div className="checkbox-row">
-              {enabledDirections.map((d) => (
-                <label key={d}>
-                  <input
-                    type="checkbox"
-                    checked={directions.includes(d)}
-                    onChange={() => toggleDirection(d)}
-                  />
-                  <span className={`dir-pill ${d}`}>
-                    {d === "outbound" ? t.outboundLabel : t.inboundLabel}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </>
+          <DirectionPicker
+            options={enabledDirections}
+            selected={directions}
+            labelFor={(d) => (d === "outbound" ? t.outboundLabel : t.inboundLabel)}
+            onToggle={toggleDirection}
+          />
         )}
 
-        {/* Accessories/lending step */}
         {((props.mode === "create" && step === 4) ||
           (props.mode === "edit" && step === 2)) && (
-          <>
-            <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickLending}</p>
-            <div className="checkbox-row">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={lendsBooster}
-                  onChange={(e) => setLendsBooster(e.target.checked)}
-                />
-                {t.lendsBooster}
-              </label>
-            </div>
-            <div className="checkbox-row">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={lendsRearFacing}
-                  onChange={(e) => setLendsRearFacing(e.target.checked)}
-                />
-                {t.lendsRearFacing}
-              </label>
-            </div>
-            <div className="checkbox-row">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={lendsFrontFacing}
-                  onChange={(e) => setLendsFrontFacing(e.target.checked)}
-                />
-                {t.lendsFrontFacing}
-              </label>
-            </div>
-          </>
+          <div className="checkbox-row visual-choice-grid">
+            <label>
+              <input
+                type="checkbox"
+                checked={lendsBooster}
+                onChange={(e) => setLendsBooster(e.target.checked)}
+              />
+              {t.lendsBooster}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={lendsRearFacing}
+                onChange={(e) => setLendsRearFacing(e.target.checked)}
+              />
+              {t.lendsRearFacing}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={lendsFrontFacing}
+                onChange={(e) => setLendsFrontFacing(e.target.checked)}
+              />
+              {t.lendsFrontFacing}
+            </label>
+          </div>
         )}
 
-        {/* Review step */}
         {step === lastStep && (
           <VehicleReview
             t={t}
@@ -332,21 +302,26 @@ export function VehicleWizard(props: VehicleWizardProps) {
         )}
       </div>
 
-      <div className="wizard-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={step === 0 ? onCancel : () => setStep(step - 1)}
-        >
-          {step === 0 ? t.cancel : t.back}
-        </button>
+      <div className="wiz-nav">
         {step === lastStep ? (
-          <button type="button" className="accent" onClick={handleSubmit} disabled={loading}>
-            {t.saveVehicle}
+          <button
+            type="button"
+            className="wiz-advance accent"
+            onClick={handleSubmit}
+            disabled={loading}
+            aria-label={t.saveVehicle}
+          >
+            <Check size={22} strokeWidth={2.5} />
           </button>
         ) : (
-          <button type="button" onClick={() => setStep(step + 1)} disabled={!canAdvance()}>
-            {t.next}
+          <button
+            type="button"
+            className="wiz-advance"
+            onClick={() => setStep(step + 1)}
+            disabled={!canAdvance()}
+            aria-label={t.next}
+          >
+            <ArrowRight size={22} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -375,8 +350,14 @@ function VehicleReview({
   lendsFrontFacing: boolean;
   mode: "create" | "edit";
 }) {
+  const extras = [
+    lendsBooster ? t.lendsBooster : "",
+    lendsRearFacing ? t.lendsRearFacing : "",
+    lendsFrontFacing ? t.lendsFrontFacing : "",
+  ].filter(Boolean);
+
   return (
-    <div style={{ display: "grid", gap: "12px" }}>
+    <div className="review-card">
       <p>
         <strong>{driverName}</strong>
         {mode === "create" && (
@@ -390,25 +371,15 @@ function VehicleReview({
           </span>
         ))}
       </div>
-      {(lendsBooster || lendsRearFacing || lendsFrontFacing) && (
-        <div className="row">
-          {lendsBooster && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.lendsBooster}</span>}
-          {lendsRearFacing && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.lendsRearFacing}</span>}
-          {lendsFrontFacing && <span className="muted" style={{ fontSize: "0.85rem" }}>↳ {t.lendsFrontFacing}</span>}
-        </div>
-      )}
-      {mode === "create" && reserved.length > 0 && (
-        <div>
-          <p className="muted" style={{ fontSize: "0.85rem" }}>Reserved:</p>
-          {reserved
-            .filter((r) => r.name.trim())
-            .map((r) => (
-              <p key={r.seatIndex} style={{ fontSize: "0.92rem" }}>
-                Seat {r.seatIndex + 1}: {r.name}
-              </p>
-            ))}
-        </div>
-      )}
+      {extras.length > 0 && <p className="muted hint">{extras.join(" · ")}</p>}
+      {mode === "create" &&
+        reserved
+          .filter((r) => r.name.trim())
+          .map((r) => (
+            <p key={r.seatIndex} className="hint">
+              {t.seat} {r.seatIndex + 1}: {r.name}
+            </p>
+          ))}
     </div>
   );
 }
