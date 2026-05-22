@@ -2,7 +2,8 @@ export type Language = "en" | "sv";
 
 const en = {
   appName: "ToddlerCarPool",
-  brandTagline: "A calm shared room for one trip",
+  brandTagline:
+    "Plan rides to parties, preschool events, and playdates with the parents already in your group. Join with a code, add cars or children, and assign seats together. Use nicknames only; rooms are removed from the live app after 30 days.",
   introHeadline: "Plan a toddler carpool together",
   introBody:
     "Create a room and share the code. Parents add their car or child, then anyone can match children to available seats.",
@@ -189,7 +190,8 @@ export type Translation = Record<TranslationKey, string>;
 
 const sv: Translation = {
   appName: "ToddlerCarPool",
-  brandTagline: "Ett lugnt delat rum för en resa",
+  brandTagline:
+    "Planera skjuts till kalas, förskoleaktiviteter och lekdejter med föräldrarna i din grupp. Gå med med en kod, lägg till bilar eller barn och fördela platser tillsammans. Använd bara smeknamn; rum tas bort från appen efter 30 dagar.",
   introHeadline: "Planera en småbarnssamåkning tillsammans",
   introBody:
     "Skapa ett rum och dela koden. Föräldrar lägger till sin bil eller sitt barn, sen kan vem som helst matcha barn till lediga platser.",

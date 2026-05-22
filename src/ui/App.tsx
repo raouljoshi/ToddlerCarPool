@@ -443,7 +443,7 @@ function LandingView({
   return (
     <section className="landing">
       <HeroCars />
-      <p className="landing-tagline">{t.brandTagline}</p>
+      <p className="landing-explainer">{t.brandTagline}</p>
 
       <form
         className="join-card"
