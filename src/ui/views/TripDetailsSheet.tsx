@@ -1,6 +1,14 @@
 import { useState } from "react";
 import type { ReturnTripSetup, UpdateSettingsRequest } from "../../application/dto";
-import type { Room } from "../../domain/types";
+import {
+  DIRECTIONS,
+  TIME_REFERENCES,
+  defaultTimeReference,
+  parseTimeReference,
+  type Direction,
+  type DirectionMeta,
+  type Room,
+} from "../../domain/types";
 import type { Language, Translation } from "../i18n";
 
 interface TripDetailsSheetProps {
@@ -12,6 +20,21 @@ interface TripDetailsSheetProps {
   onCopyCode: () => void;
   onCopyLink: () => void;
   onSubmit: (request: UpdateSettingsRequest) => void;
+}
+
+type DirectionTimingDraft = Pick<DirectionMeta, "time" | "timeReference" | "info">;
+type DirectionRecord<T> = Record<Direction, T>;
+
+function timingDraft(meta: DirectionMeta, direction: Direction): DirectionTimingDraft {
+  return {
+    time: meta.time ?? "",
+    timeReference: meta.timeReference ?? defaultTimeReference(direction),
+    info: meta.info ?? "",
+  };
+}
+
+function directionLabel(t: Translation, direction: Direction): string {
+  return direction === "outbound" ? t.outboundLabel : t.inboundLabel;
 }
 
 export function TripDetailsSheet({
@@ -28,13 +51,38 @@ export function TripDetailsSheet({
   const [date, setDate] = useState(room.settings.date ?? "");
   const [staticInfo, setStaticInfo] = useState(room.settings.staticInfo ?? "");
   const [mapLink, setMapLink] = useState(room.settings.mapLink ?? "");
-  const [outboundEnabled, setOutboundEnabled] = useState(room.settings.outbound.enabled);
-  const [inboundEnabled, setInboundEnabled] = useState(room.settings.inbound.enabled);
+  const [enabledDraft, setEnabledDraft] = useState<DirectionRecord<boolean>>({
+    outbound: room.settings.outbound.enabled,
+    inbound: room.settings.inbound.enabled,
+  });
+  const [timing, setTiming] = useState<DirectionRecord<DirectionTimingDraft>>({
+    outbound: timingDraft(room.settings.outbound, "outbound"),
+    inbound: timingDraft(room.settings.inbound, "inbound"),
+  });
   const [returnTripSetup, setReturnTripSetup] = useState<ReturnTripSetup>("mirror-seats");
   const expiryDate = new Date(room.expiresAt).toLocaleDateString(
     language === "sv" ? "sv-SE" : "en-US",
   );
-  const returnTripWasAdded = !room.settings.inbound.enabled && inboundEnabled;
+  const returnTripWasAdded = !room.settings.inbound.enabled && enabledDraft.inbound;
+
+  function updateEnabled(direction: Direction, enabled: boolean) {
+    setEnabledDraft((current) => ({ ...current, [direction]: enabled }));
+  }
+
+  function updateTiming(direction: Direction, next: DirectionTimingDraft) {
+    setTiming((current) => ({ ...current, [direction]: next }));
+  }
+
+  function settingsForDirection(direction: Direction): DirectionMeta {
+    const draft = timing[direction];
+    return {
+      ...room.settings[direction],
+      enabled: enabledDraft[direction],
+      time: draft.time || undefined,
+      timeReference: draft.time ? draft.timeReference : undefined,
+      info: draft.info?.trim() || undefined,
+    };
+  }
 
   function save() {
     onSubmit({
@@ -42,14 +90,8 @@ export function TripDetailsSheet({
       date: date || undefined,
       staticInfo: staticInfo.trim() || undefined,
       mapLink: mapLink.trim() || undefined,
-      outbound: {
-        ...room.settings.outbound,
-        enabled: outboundEnabled,
-      },
-      inbound: {
-        ...room.settings.inbound,
-        enabled: inboundEnabled,
-      },
+      outbound: settingsForDirection("outbound"),
+      inbound: settingsForDirection("inbound"),
       returnTripSetup: returnTripWasAdded ? returnTripSetup : undefined,
     });
   }
@@ -93,22 +135,16 @@ export function TripDetailsSheet({
         <div>
           <p className="field-title">{t.tripDirections}</p>
           <div className="checkbox-row visual-choice-grid">
-            <label>
-              <input
-                type="checkbox"
-                checked={outboundEnabled}
-                onChange={(event) => setOutboundEnabled(event.target.checked)}
-              />
-              <span className="dir-pill outbound">{t.outboundLabel}</span>
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={inboundEnabled}
-                onChange={(event) => setInboundEnabled(event.target.checked)}
-              />
-              <span className="dir-pill inbound">{t.inboundLabel}</span>
-            </label>
+            {DIRECTIONS.map((direction) => (
+              <label key={direction}>
+                <input
+                  type="checkbox"
+                  checked={enabledDraft[direction]}
+                  onChange={(event) => updateEnabled(direction, event.target.checked)}
+                />
+                <span className={`dir-pill ${direction}`}>{directionLabel(t, direction)}</span>
+              </label>
+            ))}
           </div>
         </div>
 
@@ -150,6 +186,21 @@ export function TripDetailsSheet({
           </div>
         )}
 
+        <div className="trip-timing-panel">
+          <p className="field-title">{t.tripTimingTitle}</p>
+          {DIRECTIONS.map((direction) => (
+            <DirectionTimingEditor
+              key={direction}
+              t={t}
+              direction={direction}
+              label={directionLabel(t, direction)}
+              enabled={enabledDraft[direction]}
+              meta={timing[direction]}
+              onMetaChange={(next) => updateTiming(direction, next)}
+            />
+          ))}
+        </div>
+
         <label>
           {t.eventInfo}
           <textarea
@@ -184,11 +235,76 @@ export function TripDetailsSheet({
           type="button"
           className="accent"
           onClick={save}
-          disabled={loading || label.trim().length === 0 || (!outboundEnabled && !inboundEnabled)}
+          disabled={loading || label.trim().length === 0 || !DIRECTIONS.some((direction) => enabledDraft[direction])}
         >
           {t.saveDetails}
         </button>
       </div>
+    </section>
+  );
+}
+
+function DirectionTimingEditor({
+  t,
+  direction,
+  label,
+  enabled,
+  meta,
+  onMetaChange,
+}: {
+  t: Translation;
+  direction: Direction;
+  label: string;
+  enabled: boolean;
+  meta: DirectionTimingDraft;
+  onMetaChange: (meta: DirectionTimingDraft) => void;
+}) {
+  const disabled = !enabled;
+  const timeLabel = `${label} ${t.tripTimeOptional}`;
+  const referenceLabel = `${label} ${t.timeReference}`;
+  const infoLabel = `${label} ${t.directionInfo}`;
+
+  return (
+    <section className={`direction-timing-card ${direction}${disabled ? " disabled" : ""}`}>
+      <h3>{label}</h3>
+      <div className="direction-timing-grid">
+        <label>
+          {timeLabel}
+          <input
+            type="time"
+            value={meta.time}
+            onChange={(event) => onMetaChange({ ...meta, time: event.target.value })}
+            disabled={disabled}
+          />
+        </label>
+        <label>
+          {referenceLabel}
+          <select
+            value={meta.timeReference}
+            onChange={(event) => onMetaChange({
+              ...meta,
+              timeReference: parseTimeReference(event.target.value),
+            })}
+            disabled={disabled}
+          >
+            {TIME_REFERENCES.map((reference) => (
+              <option key={reference} value={reference}>
+                {reference === "departure" ? t.timeReferenceDeparture : t.timeReferenceArrival}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <label>
+        {infoLabel}
+        <textarea
+          value={meta.info}
+          onChange={(event) => onMetaChange({ ...meta, info: event.target.value })}
+          rows={2}
+          maxLength={500}
+          disabled={disabled}
+        />
+      </label>
     </section>
   );
 }

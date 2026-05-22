@@ -96,9 +96,18 @@ export const ROOM_TTL_DAYS = 30;
 
 export const ACCESSORY_TYPES: AccessoryType[] = ["booster", "rearFacing", "frontFacing"];
 export const DIRECTIONS: Direction[] = ["outbound", "inbound"];
+export const TIME_REFERENCES: TimeReference[] = ["departure", "arrival"];
 
 export const EMPTY_BORROWS: BorrowFlags = {
   booster: false,
   rearFacing: false,
   frontFacing: false,
 };
+
+export function defaultTimeReference(direction: Direction): TimeReference {
+  return direction === "outbound" ? "arrival" : "departure";
+}
+
+export function parseTimeReference(value: string): TimeReference {
+  return value === "arrival" ? "arrival" : "departure";
+}

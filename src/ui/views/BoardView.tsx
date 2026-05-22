@@ -18,7 +18,15 @@ import {
 } from "../../domain/allocation";
 import type { AssignChildRequest } from "../../application/dto";
 import type { ErrorCode } from "../../domain/result";
-import type { Child, Direction, DirectionMeta, Room, Vehicle } from "../../domain/types";
+import {
+  defaultTimeReference,
+  type Child,
+  type Direction,
+  type DirectionMeta,
+  type Room,
+  type TimeReference,
+  type Vehicle,
+} from "../../domain/types";
 import type { Language, Translation } from "../i18n";
 import { CarGraphic } from "../components/CarGraphic";
 import { Fab } from "../components/Fab";
@@ -51,6 +59,10 @@ function formatDate(date: string, language: Language): string {
     day: "numeric",
     month: "short",
   });
+}
+
+function timeVerb(t: Translation, reference: TimeReference): string {
+  return reference === "arrival" ? t.boardTimeArrive : t.boardTimeLeave;
 }
 
 export function BoardView({
@@ -166,6 +178,7 @@ export function BoardView({
   const date = room.settings.date;
   const mapLink = room.settings.mapLink;
   const staticInfo = room.settings.staticInfo;
+  const activeDirectionInfo = directionMeta(activeDirection).info;
   const timed = directions
     .map((direction) => ({ direction, meta: directionMeta(direction) }))
     .filter((entry) => entry.meta.time);
@@ -204,12 +217,14 @@ export function BoardView({
           )}
           {timed.map(({ direction, meta }) => (
             <span key={direction} className={`board-meta-item dir ${direction}`}>
+              {timeVerb(t, meta.timeReference ?? defaultTimeReference(direction))}{" "}
               {directionLabel(direction)} {meta.time}
             </span>
           ))}
         </div>
 
         {staticInfo && <p className="muted board-desc">{staticInfo}</p>}
+        {activeDirectionInfo && <p className="board-direction-note">{activeDirectionInfo}</p>}
 
         {mapLink && (
           <a className="board-map" href={mapLink} target="_blank" rel="noreferrer">
@@ -323,12 +338,14 @@ export function BoardView({
         )}
       </section>
 
-      <Fab
-        addVehicleLabel={t.addVehicle}
-        addChildLabel={t.addChild}
-        onAddVehicle={onAddVehicle}
-        onAddChild={onAddChild}
-      />
+      {!selectedChild && (
+        <Fab
+          addVehicleLabel={t.addVehicle}
+          addChildLabel={t.addChild}
+          onAddVehicle={onAddVehicle}
+          onAddChild={onAddChild}
+        />
+      )}
     </>
   );
 }
