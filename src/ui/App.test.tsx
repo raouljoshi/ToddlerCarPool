@@ -7,7 +7,7 @@ describe("App", () => {
     vi.stubGlobal("fetch", vi.fn());
     render(<App />);
 
-    expect(screen.getByText("ToddlerCarPool")).toBeInTheDocument();
+    expect(screen.getByLabelText("ToddlerCarPool", { selector: ".appbar-brand" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "ToddlerCarPool" })).toBeInTheDocument();
     expect(screen.getByText(/Plan rides to parties, preschool events, and playdates/i)).toBeInTheDocument();
     expect(screen.getByText(/Use nicknames only/i)).toBeInTheDocument();

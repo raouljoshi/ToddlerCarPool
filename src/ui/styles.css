@@ -283,7 +283,7 @@ p { margin: 0; line-height: 1.5; }
   top: 0;
   z-index: 15;
   display: grid;
-  grid-template-columns: var(--tap-sm) 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
   margin: 0 calc(-1 * var(--space-md)) var(--space-md);
@@ -296,6 +296,8 @@ p { margin: 0; line-height: 1.5; }
 .appbar-lead {
   display: flex;
   align-items: center;
+  min-width: 0;
+  gap: var(--space-sm);
 }
 
 .appbar-back {
@@ -308,10 +310,22 @@ p { margin: 0; line-height: 1.5; }
 }
 
 .appbar-brand {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.04rem;
-  font-weight: 800;
-  text-align: center;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.appbar-brand span {
+  min-width: 0;
+}
+
+.appbar-brand span:last-child {
+  color: var(--color-accent);
 }
 
 .brand-dot {
