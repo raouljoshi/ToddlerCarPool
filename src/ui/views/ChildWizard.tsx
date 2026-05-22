@@ -74,6 +74,8 @@ export function ChildWizard(props: ChildWizardProps) {
     }
   }
 
+  const childInitial = (name.trim()[0] ?? "?").toUpperCase();
+
   return (
     <section className="panel wizard">
       <h2>{props.mode === "create" ? t.childWizardTitle : t.childEditCta}</h2>
@@ -92,23 +94,30 @@ export function ChildWizard(props: ChildWizardProps) {
       <div className="wizard-step">
         {/* Step 0: Name */}
         {step === 0 && (
-          <label>
-            {t.childName}
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              placeholder="e.g. Leo"
-              maxLength={40}
-            />
-          </label>
+          <div className="child-preview-layout">
+            <div className="child-preview-card" aria-hidden="true">
+              <span className="child-avatar">{childInitial}</span>
+              <strong>{name.trim() || t.childName}</strong>
+              <span className="muted">{t.boardWaitingForSeat}</span>
+            </div>
+            <label>
+              {t.childName}
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+                placeholder="e.g. Leo"
+                maxLength={40}
+              />
+            </label>
+          </div>
         )}
 
         {/* Step 1: Directions */}
         {step === 1 && (
           <>
             <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickDirectionsChild}</p>
-            <div className="checkbox-row">
+            <div className="checkbox-row visual-choice-grid">
               {enabledDirections.map((d) => (
                 <label key={d}>
                   <input
@@ -129,7 +138,7 @@ export function ChildWizard(props: ChildWizardProps) {
         {step === 2 && (
           <>
             <p className="muted" style={{ fontSize: "0.92rem" }}>{t.pickBorrow}</p>
-            <div className="checkbox-row">
+            <div className="checkbox-row visual-choice-grid">
               <label>
                 <input
                   type="checkbox"
@@ -138,8 +147,6 @@ export function ChildWizard(props: ChildWizardProps) {
                 />
                 {t.borrowBooster}
               </label>
-            </div>
-            <div className="checkbox-row">
               <label>
                 <input
                   type="checkbox"
@@ -148,8 +155,6 @@ export function ChildWizard(props: ChildWizardProps) {
                 />
                 {t.borrowRearFacing}
               </label>
-            </div>
-            <div className="checkbox-row">
               <label>
                 <input
                   type="checkbox"
@@ -164,8 +169,11 @@ export function ChildWizard(props: ChildWizardProps) {
 
         {/* Step 3: Review */}
         {step === 3 && (
-          <div style={{ display: "grid", gap: "12px" }}>
-            <p><strong>{name}</strong></p>
+          <div className="review-card">
+            <div className="child-review-head">
+              <span className="child-avatar">{childInitial}</span>
+              <strong>{name}</strong>
+            </div>
             <div className="row">
               {directions.map((d) => (
                 <span key={d} className={`dir-pill ${d}`}>

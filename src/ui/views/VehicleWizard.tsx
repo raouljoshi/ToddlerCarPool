@@ -94,6 +94,13 @@ export function VehicleWizard(props: VehicleWizardProps) {
     );
   }
 
+  function changeSeatCount(delta: number) {
+    const next = Math.max(1, Math.min(ROOM_LIMITS.seatsPerVehicle, seatCount + delta));
+    if (next === seatCount) return;
+    setSeatCount(next);
+    setReserved((prev) => prev.filter((r) => r.seatIndex < next));
+  }
+
   function canAdvance(): boolean {
     if (step === 0) return driverName.trim().length > 0;
     if (props.mode === "create" && step === 2) {
@@ -187,22 +194,36 @@ export function VehicleWizard(props: VehicleWizardProps) {
         {/* Step 1 (create): Seat count */}
         {props.mode === "create" && step === 1 && (
           <>
-            <label>
-              {t.seatCount}
-              <input
-                type="number"
-                min={1}
-                max={ROOM_LIMITS.seatsPerVehicle}
-                value={seatCount}
-                onChange={(e) => {
-                  const v = Math.max(1, Math.min(ROOM_LIMITS.seatsPerVehicle, Number(e.target.value)));
-                  setSeatCount(v);
-                  setReserved([]);
-                }}
-              />
-              <span className="muted" style={{ fontSize: "0.85rem" }}>{t.seatCountHint}</span>
-            </label>
-            <SeatSchematic seats={seatsForSchematic} label={`${seatCount} passenger seats`} />
+            <div className="seat-count-picker">
+              <div>
+                <p className="field-title">{t.seatCount}</p>
+                <span className="muted" style={{ fontSize: "0.85rem" }}>{t.seatCountHint}</span>
+              </div>
+              <div className="stepper-control" role="group" aria-label={t.seatCount}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => changeSeatCount(-1)}
+                  disabled={seatCount <= 1}
+                  aria-label={t.seatCountDecrease}
+                >
+                  -
+                </button>
+                <strong aria-live="polite">{seatCount}</strong>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => changeSeatCount(1)}
+                  disabled={seatCount >= ROOM_LIMITS.seatsPerVehicle}
+                  aria-label={t.seatCountIncrease}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="seat-preview">
+              <SeatSchematic seats={seatsForSchematic} label={`${seatCount} passenger seats`} />
+            </div>
           </>
         )}
 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import type {
   AssignChildRequest,
   CreateChildRequest,
   CreateRoomRequest,
   CreateVehicleRequest,
   UpdateChildRequest,
+  UpdateSettingsRequest,
   UpdateVehicleRequest,
 } from "../application/dto";
 import { enabledDirections } from "../domain/allocation";
@@ -20,32 +22,36 @@ import {
   getRoom,
   unassignChild,
   updateChild,
+  updateSettings,
   updateVehicle,
 } from "./api";
 import { HeroCars } from "./components/HeroCars";
-import { getInitialLanguage, saveLanguage, translations, type Language } from "./i18n";
-import { AllocateView } from "./views/AllocateView";
+import { getInitialLanguage, saveLanguage, translations, type Language, type Translation } from "./i18n";
+import { BoardView } from "./views/BoardView";
 import { ChildWizard } from "./views/ChildWizard";
 import { OrganizerWizard } from "./views/OrganizerWizard";
-import { RoomOverview } from "./views/RoomOverview";
+import { TripDetailsSheet } from "./views/TripDetailsSheet";
 import { VehicleWizard } from "./views/VehicleWizard";
 import "./styles.css";
 
 type View =
   | { kind: "landing" }
   | { kind: "create-wizard" }
-  | { kind: "room-overview"; justCreated: boolean }
+  | { kind: "room-overview"; justCreated: boolean };
+
+type RoomSheet =
+  | { kind: "trip-details" }
   | { kind: "add-vehicle" }
   | { kind: "add-child" }
   | { kind: "edit-vehicle"; vehicleId: string }
-  | { kind: "edit-child"; childId: string }
-  | { kind: "allocate"; childId: string };
+  | { kind: "edit-child"; childId: string };
 
 export function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage);
   const t = translations[language];
   const [room, setRoom] = useState<Room | null>(null);
   const [view, setView] = useState<View>({ kind: "landing" });
+  const [roomSheet, setRoomSheet] = useState<RoomSheet | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -68,9 +74,10 @@ export function App() {
       const next = await getRoom(code);
       setRoom(next);
       setView({ kind: "room-overview", justCreated });
+      setRoomSheet(null);
       window.history.replaceState(null, "", `/?room=${encodeURIComponent(next.code)}`);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -83,9 +90,10 @@ export function App() {
       const next = await createRoom(request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: true });
+      setRoomSheet(null);
       window.history.replaceState(null, "", `/?room=${encodeURIComponent(next.code)}`);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -99,8 +107,25 @@ export function App() {
       const next = await createVehicle(room.code, request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: false });
+      setRoomSheet(null);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdateSettings(request: UpdateSettingsRequest) {
+    if (!room) return;
+    setLoading(true);
+    setError("");
+    try {
+      const next = await updateSettings(room.code, request);
+      setRoom(next);
+      setView({ kind: "room-overview", justCreated: false });
+      setRoomSheet(null);
+    } catch (caught) {
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -114,8 +139,9 @@ export function App() {
       const next = await updateVehicle(room.code, vehicleId, request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: false });
+      setRoomSheet(null);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -129,7 +155,7 @@ export function App() {
       const next = await deleteVehicle(room.code, vehicleId);
       setRoom(next);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -143,8 +169,9 @@ export function App() {
       const next = await createChild(room.code, request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: false });
+      setRoomSheet(null);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -158,8 +185,9 @@ export function App() {
       const next = await updateChild(room.code, childId, request);
       setRoom(next);
       setView({ kind: "room-overview", justCreated: false });
+      setRoomSheet(null);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -173,7 +201,7 @@ export function App() {
       const next = await deleteChild(room.code, childId);
       setRoom(next);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -187,7 +215,7 @@ export function App() {
       const next = await assignChild(room.code, request);
       setRoom(next);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -201,7 +229,7 @@ export function App() {
       const next = await unassignChild(room.code, assignmentId);
       setRoom(next);
     } catch (caught) {
-      setError(caught instanceof ApiClientError ? caught.message : t.unexpectedError);
+      setError(errorMessage(caught, t));
     } finally {
       setLoading(false);
     }
@@ -217,6 +245,7 @@ export function App() {
   }
 
   function goToOverview() {
+    setRoomSheet(null);
     if (room) setView({ kind: "room-overview", justCreated: false });
   }
 
@@ -255,7 +284,7 @@ export function App() {
       )}
 
       {view.kind === "room-overview" && room && (
-        <RoomOverview
+        <BoardView
           t={t}
           language={language}
           room={room}
@@ -268,86 +297,128 @@ export function App() {
               t.linkCopied,
             )
           }
+          onOpenDetails={() => setRoomSheet({ kind: "trip-details" })}
           onRefresh={() => void loadRoom(room.code, false)}
-          onAddVehicle={() => setView({ kind: "add-vehicle" })}
-          onAddChild={() => setView({ kind: "add-child" })}
-          onEditVehicle={(vehicleId) => setView({ kind: "edit-vehicle", vehicleId })}
-          onEditChild={(childId) => setView({ kind: "edit-child", childId })}
+          onAddVehicle={() => setRoomSheet({ kind: "add-vehicle" })}
+          onAddChild={() => setRoomSheet({ kind: "add-child" })}
+          onEditVehicle={(vehicleId) => setRoomSheet({ kind: "edit-vehicle", vehicleId })}
+          onEditChild={(childId) => setRoomSheet({ kind: "edit-child", childId })}
           onDeleteVehicle={(vehicleId) => void handleDeleteVehicle(vehicleId)}
           onDeleteChild={(childId) => void handleDeleteChild(childId)}
           onUnassign={(assignmentId) => void handleUnassign(assignmentId)}
-          onAllocate={(childId) => setView({ kind: "allocate", childId })}
+          onAssign={(request) => void handleAssignChild(request)}
         />
       )}
 
-      {view.kind === "add-vehicle" && room && (
-        <VehicleWizard
-          mode="create"
-          t={t}
-          enabledDirections={enabledDirections(room)}
-          loading={loading}
-          onCancel={goToOverview}
-          onSubmit={(request) => void handleCreateVehicle(request)}
-        />
+      {roomSheet?.kind === "trip-details" && room && (
+        <SheetFrame onClose={goToOverview}>
+          <TripDetailsSheet
+            t={t}
+            language={language}
+            room={room}
+            loading={loading}
+            onCancel={goToOverview}
+            onCopyCode={() => void copyText(room.code, t.codeCopied)}
+            onCopyLink={() =>
+              void copyText(
+                `${window.location.origin}/?room=${encodeURIComponent(room.code)}`,
+                t.linkCopied,
+              )
+            }
+            onSubmit={(request) => void handleUpdateSettings(request)}
+          />
+        </SheetFrame>
       )}
 
-      {view.kind === "add-child" && room && (
-        <ChildWizard
-          mode="create"
-          t={t}
-          enabledDirections={enabledDirections(room)}
-          loading={loading}
-          onCancel={goToOverview}
-          onSubmit={(request) => void handleCreateChild(request)}
-        />
+      {roomSheet?.kind === "add-vehicle" && room && (
+        <SheetFrame onClose={goToOverview}>
+          <VehicleWizard
+            mode="create"
+            t={t}
+            enabledDirections={enabledDirections(room)}
+            loading={loading}
+            onCancel={goToOverview}
+            onSubmit={(request) => void handleCreateVehicle(request)}
+          />
+        </SheetFrame>
       )}
 
-      {view.kind === "edit-vehicle" && room && (() => {
-        const vehicle = room.vehicles.find((v) => v.id === view.vehicleId);
+      {roomSheet?.kind === "add-child" && room && (
+        <SheetFrame onClose={goToOverview}>
+          <ChildWizard
+            mode="create"
+            t={t}
+            enabledDirections={enabledDirections(room)}
+            loading={loading}
+            onCancel={goToOverview}
+            onSubmit={(request) => void handleCreateChild(request)}
+          />
+        </SheetFrame>
+      )}
+
+      {roomSheet?.kind === "edit-vehicle" && room && (() => {
+        const vehicle = room.vehicles.find((v) => v.id === roomSheet.vehicleId);
         if (!vehicle) return null;
         return (
-          <VehicleWizard
-            mode="edit"
-            vehicle={vehicle}
-            t={t}
-            enabledDirections={enabledDirections(room)}
-            loading={loading}
-            onCancel={goToOverview}
-            onSubmit={(request) => void handleUpdateVehicle(view.vehicleId, request)}
-          />
+          <SheetFrame onClose={goToOverview}>
+            <VehicleWizard
+              mode="edit"
+              vehicle={vehicle}
+              t={t}
+              enabledDirections={enabledDirections(room)}
+              loading={loading}
+              onCancel={goToOverview}
+              onSubmit={(request) => void handleUpdateVehicle(roomSheet.vehicleId, request)}
+            />
+          </SheetFrame>
         );
       })()}
 
-      {view.kind === "edit-child" && room && (() => {
-        const child = room.children.find((c) => c.id === view.childId);
+      {roomSheet?.kind === "edit-child" && room && (() => {
+        const child = room.children.find((c) => c.id === roomSheet.childId);
         if (!child) return null;
         return (
-          <ChildWizard
-            mode="edit"
-            child={child}
-            t={t}
-            enabledDirections={enabledDirections(room)}
-            loading={loading}
-            onCancel={goToOverview}
-            onSubmit={(request) => void handleUpdateChild(view.childId, request)}
-          />
+          <SheetFrame onClose={goToOverview}>
+            <ChildWizard
+              mode="edit"
+              child={child}
+              t={t}
+              enabledDirections={enabledDirections(room)}
+              loading={loading}
+              onCancel={goToOverview}
+              onSubmit={(request) => void handleUpdateChild(roomSheet.childId, request)}
+            />
+          </SheetFrame>
         );
       })()}
 
-      {view.kind === "allocate" && room && (
-        <AllocateView
-          t={t}
-          language={language}
-          room={room}
-          childId={view.childId}
-          loading={loading}
-          onBack={goToOverview}
-          onAssign={async (request) => {
-            await handleAssignChild(request);
-          }}
-        />
-      )}
     </main>
+  );
+}
+
+function errorMessage(caught: unknown, t: Translation): string {
+  if (!(caught instanceof ApiClientError)) return t.unexpectedError;
+  if (caught.code === "DIRECTION_NOT_NEEDED_OR_OFFERED") return t.editWouldBreakTrips;
+  if (caught.code === "INCOMPATIBLE_ACCESSORY") return t.editWouldBreakEquipment;
+  if (caught.code === "SEAT_NOT_FOUND" || caught.code === "SEAT_ALREADY_ASSIGNED") {
+    return t.editWouldBreakSeats;
+  }
+  return caught.message;
+}
+
+function SheetFrame({
+  children,
+  onClose,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="sheet form-sheet" onClick={(event) => event.stopPropagation()}>
+        {children}
+      </div>
+    </div>
   );
 }
 

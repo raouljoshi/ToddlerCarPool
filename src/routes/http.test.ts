@@ -68,7 +68,7 @@ describe("http routes", () => {
     const response = await handleRequest(
       new Request("https://example.com/api/rooms/abc/assignments", {
         method: "POST",
-        body: JSON.stringify({ childId: "c", vehicleId: "v", direction: "outbound" }),
+        body: JSON.stringify({ childId: "c", vehicleId: "v", direction: "outbound", seatIndex: 0 }),
         headers: { "content-type": "application/json" },
       }),
       env,

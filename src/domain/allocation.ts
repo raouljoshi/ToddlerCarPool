@@ -16,6 +16,7 @@ export interface AssignmentCandidate {
   childId: string;
   vehicleId: string;
   direction: Direction;
+  seatIndex: number;
 }
 
 export function findChild(room: Room, childId: string): Child | undefined {
@@ -156,8 +157,14 @@ export function validateAssignment(room: Room, candidate: AssignmentCandidate): 
     return err("SEAT_ALREADY_ASSIGNED", "This child already has a ride for that direction.");
   }
 
-  if (nextFreeSeatIndex(room, vehicle, candidate.direction) === undefined) {
-    return err("SEAT_ALREADY_ASSIGNED", "This vehicle has no free seat for that direction.");
+  const seatIndex = Math.floor(Number(candidate.seatIndex));
+  if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex >= vehicle.seatCount) {
+    return err("SEAT_NOT_FOUND", "Seat was not found.");
+  }
+
+  const taken = takenSeatIndexes(room, vehicle.id, candidate.direction);
+  if (taken.has(seatIndex)) {
+    return err("SEAT_ALREADY_ASSIGNED", "This seat is already assigned.");
   }
 
   for (const type of ACCESSORY_TYPES) {
@@ -167,7 +174,48 @@ export function validateAssignment(room: Room, candidate: AssignmentCandidate): 
     }
   }
 
-  return ok(candidate);
+  return ok({ ...candidate, seatIndex });
+}
+
+export function validateRoomAssignments(room: Room): Result<Room> {
+  const occupied = new Set<string>();
+  const borrowedByVehicleDirection = new Map<string, Record<AccessoryType, number>>();
+
+  for (const assignment of room.assignments) {
+    const child = findChild(room, assignment.childId);
+    if (!child) return err("CHILD_NOT_FOUND", "Child was not found.");
+    const vehicle = findVehicle(room, assignment.vehicleId);
+    if (!vehicle) return err("VEHICLE_NOT_FOUND", "Vehicle was not found.");
+
+    if (!vehicle.directions.includes(assignment.direction) || !child.directions.includes(assignment.direction)) {
+      return err("DIRECTION_NOT_NEEDED_OR_OFFERED", "An existing seat no longer matches that trip.");
+    }
+
+    if (assignment.seatIndex < 0 || assignment.seatIndex >= vehicle.seatCount) {
+      return err("SEAT_NOT_FOUND", "An existing seat is no longer available.");
+    }
+
+    const seatKey = `${assignment.vehicleId}:${assignment.direction}:${assignment.seatIndex}`;
+    if (occupied.has(seatKey)) {
+      return err("SEAT_ALREADY_ASSIGNED", "Two riders are assigned to the same seat.");
+    }
+    occupied.add(seatKey);
+
+    const accessoryKey = `${assignment.vehicleId}:${assignment.direction}`;
+    const used =
+      borrowedByVehicleDirection.get(accessoryKey) ??
+      { booster: 0, rearFacing: 0, frontFacing: 0 };
+    for (const type of ACCESSORY_TYPES) {
+      if (borrowsType(child.borrows, type)) used[type] += 1;
+      const offered = vehicleLends(vehicle, type) ? 1 : 0;
+      if (used[type] > offered) {
+        return err("INCOMPATIBLE_ACCESSORY", "An existing rider needs child-seat equipment this vehicle no longer offers.");
+      }
+    }
+    borrowedByVehicleDirection.set(accessoryKey, used);
+  }
+
+  return ok(room);
 }
 
 export function getChildAllocations(room: Room): ChildAllocation[] {
