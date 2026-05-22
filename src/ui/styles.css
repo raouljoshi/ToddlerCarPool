@@ -283,7 +283,7 @@ p { margin: 0; line-height: 1.5; }
   top: 0;
   z-index: 15;
   display: grid;
-  grid-template-columns: var(--tap-sm) 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
   margin: 0 calc(-1 * var(--space-md)) var(--space-md);
@@ -296,6 +296,8 @@ p { margin: 0; line-height: 1.5; }
 .appbar-lead {
   display: flex;
   align-items: center;
+  min-width: 0;
+  gap: var(--space-sm);
 }
 
 .appbar-back {
@@ -308,10 +310,22 @@ p { margin: 0; line-height: 1.5; }
 }
 
 .appbar-brand {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.04rem;
-  font-weight: 800;
-  text-align: center;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.appbar-brand span {
+  min-width: 0;
+}
+
+.appbar-brand span:last-child {
+  color: var(--color-accent);
 }
 
 .brand-dot {
@@ -386,9 +400,16 @@ p { margin: 0; line-height: 1.5; }
 .landing {
   display: grid;
   justify-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg) 0;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0 var(--space-lg);
   text-align: center;
+}
+
+.landing-lockup {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  width: 100%;
 }
 
 .hero-cars {
@@ -404,11 +425,45 @@ p { margin: 0; line-height: 1.5; }
   height: auto;
 }
 
-.landing-tagline {
+.landing-brand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.04em;
+  margin: 0;
+  color: var(--color-ink-strong);
   font-family: var(--font-display);
-  font-size: 1.24rem;
-  font-weight: 720;
-  max-width: 18ch;
+  font-size: clamp(2.7rem, 13vw, 4.7rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.88;
+  text-wrap: balance;
+}
+
+.landing-brand span:last-child {
+  color: var(--color-accent);
+}
+
+.landing-tagline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-pebble);
+  background: var(--color-warm-soft);
+  color: var(--color-outline);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.landing-explainer {
+  display: grid;
+  gap: var(--space-xs);
+  max-width: 38ch;
+  color: var(--color-ink-muted);
+  font-size: 0.98rem;
+  font-weight: 560;
+  line-height: 1.42;
 }
 
 .join-card {

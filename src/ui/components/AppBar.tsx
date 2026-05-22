@@ -24,11 +24,11 @@ export function AppBar({ language, onLanguage, onBack }: AppBarProps) {
         ) : (
           <span className="brand-dot" aria-hidden="true" />
         )}
+        <span className="appbar-brand" aria-label="ToddlerCarPool">
+          <span>Toddler</span>
+          <span>CarPool</span>
+        </span>
       </div>
-
-      <span className="appbar-brand" aria-label="ToddlerCarPool">
-        ToddlerCarPool
-      </span>
 
       <div className="segmented" role="group" aria-label="Language">
         <button
